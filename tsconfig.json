@@ -5,7 +5,9 @@
     "moduleResolution": "bundler",
     "strict": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["chrome"],
+    "types": ["chrome", "node"],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "noEmit": true
   },
   "include": ["src", "vite.config.ts"]

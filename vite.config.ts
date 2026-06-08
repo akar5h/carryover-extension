@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
-import webExtension from 'vite-plugin-web-extension'
+import { crx } from '@crxjs/vite-plugin'
+import manifest from './manifest.json'
 
 export default defineConfig({
   plugins: [
-    webExtension(),
+    crx({ manifest }),
   ],
   build: {
     outDir: 'dist',

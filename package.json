@@ -8,10 +8,12 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.4.0",
     "@types/chrome": "^0.1.43",
+    "@types/node": "^25.9.2",
     "@types/webextension-polyfill": "^0.12.5",
+    "type-fest": "^5.7.0",
     "typescript": "^5.4.5",
-    "vite": "^5.2.11",
-    "vite-plugin-web-extension": "^4.5.1"
+    "vite": "^5.2.11"
   }
 }
