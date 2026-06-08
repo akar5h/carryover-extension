@@ -1,0 +1,43 @@
+# npm audit report
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install vite@8.0.16, which is a breaking change
+node_modules/esbuild
+  vite  <=6.4.1
+  Depends on vulnerable versions of esbuild
+  node_modules/vite
+
+tmp  <0.2.6
+Severity: high
+tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape - https://github.com/advisories/GHSA-ph9p-34f9-6g65
+fix available via `npm audit fix --force`
+Will install vite-plugin-web-extension@3.2.0, which is a breaking change
+node_modules/tmp
+  web-ext-run  *
+  Depends on vulnerable versions of node-notifier
+  Depends on vulnerable versions of tmp
+  node_modules/web-ext-run
+    vite-plugin-web-extension  >=4.0.0-alpha1
+    Depends on vulnerable versions of web-ext-run
+    node_modules/vite-plugin-web-extension
+
+uuid  <11.1.1
+Severity: moderate
+uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided - https://github.com/advisories/GHSA-w5hq-g745-h8pq
+fix available via `npm audit fix`
+node_modules/uuid
+  node-notifier  >=7.0.0
+  Depends on vulnerable versions of uuid
+  node_modules/node-notifier
+
+
+7 vulnerabilities (4 moderate, 3 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

@@ -6,6 +6,7 @@ export const INNER_CIRC = 2 * Math.PI * INNER_R
 export const OUTER_CIRC = 2 * Math.PI * OUTER_R
 
 export interface BadgeRefs {
+  badgeEl: HTMLDivElement
   innerFill: SVGCircleElement
   outerFill: SVGCircleElement
   outerTrack: SVGCircleElement
@@ -31,6 +32,33 @@ export function createBadge(): BadgeRefs {
       '#carryover-badge .co-ring-outer-fill  { stroke: #4ecf8a; stroke-width: 3; }',
       '#carryover-badge .co-ring-inner-track { stroke: #333; stroke-width: 3; }',
       '#carryover-badge .co-ring-inner-fill  { stroke: #7c6af7; stroke-width: 3; }',
+      '#carryover-panel {',
+      '  position: fixed; bottom: 74px; right: 20px;',
+      '  z-index: 2147483646;',
+      '  background: #1a1a1a; border: 1px solid #2a2a2a;',
+      '  color: #e0e0e0; border-radius: 8px; padding: 12px 16px;',
+      '  min-width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);',
+      '  font-family: system-ui, sans-serif;',
+      '}',
+      '.co-panel-header {',
+      '  font-weight: 600; font-size: 13px; margin-bottom: 8px;',
+      '}',
+      '.co-panel-divider {',
+      '  border: none; border-top: 1px solid #2a2a2a; margin: 8px 0;',
+      '}',
+      '.co-panel-row {',
+      '  display: flex; justify-content: space-between; align-items: center;',
+      '  font-size: 12px; margin: 4px 0;',
+      '}',
+      '.co-panel-value {',
+      '  color: #a0a0a0; font-variant-numeric: tabular-nums;',
+      '}',
+      '.co-btn-compress {',
+      '  width: 100%; margin-top: 8px; padding: 6px 0;',
+      '  background: #2a2a2a; color: #666; border: 1px solid #3a3a3a;',
+      '  border-radius: 4px; font-size: 12px; cursor: not-allowed;',
+      '  opacity: 0.6;',
+      '}',
     ].join('\n')
     document.head.appendChild(style)
   }
@@ -78,5 +106,5 @@ export function createBadge(): BadgeRefs {
   badge.appendChild(svg)
   document.body.appendChild(badge)
 
-  return { innerFill, outerFill, outerTrack }
+  return { badgeEl: badge, innerFill, outerFill, outerTrack }
 }
