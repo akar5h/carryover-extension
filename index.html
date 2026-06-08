@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarryOver — Context Compression</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f0f0f;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding: 32px 16px;
+      }
+
+      .container {
+        max-width: 780px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.02em;
+      }
+
+      h1 span {
+        color: #7c6af7;
+      }
+
+      .card {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      textarea {
+        background: #0f0f0f;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        color: #e0e0e0;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        padding: 12px;
+        resize: vertical;
+        width: 100%;
+        min-height: 160px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      textarea:focus {
+        border-color: #7c6af7;
+      }
+
+      textarea[readonly] {
+        color: #aaa;
+        cursor: default;
+        min-height: 200px;
+      }
+
+      .stats-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .token-badge {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #7c6af7;
+        background: #1e1a3a;
+        border: 1px solid #3a3070;
+        border-radius: 6px;
+        padding: 4px 10px;
+      }
+
+      .context-label {
+        font-size: 0.8rem;
+        color: #666;
+      }
+
+      .load-bar-wrap {
+        width: 100%;
+      }
+
+      .load-bar-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+
+      .load-bar-header span {
+        font-size: 0.8rem;
+        color: #666;
+      }
+
+      .load-bar-track {
+        height: 8px;
+        background: #2a2a2a;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .load-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #4c44c9, #7c6af7);
+        transition: width 0.2s ease, background 0.2s;
+        width: 0%;
+      }
+
+      .load-bar-fill.warn {
+        background: linear-gradient(90deg, #c97a30, #f0a040);
+      }
+
+      .load-bar-fill.danger {
+        background: linear-gradient(90deg, #c93030, #f04040);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 10px 18px;
+        transition: opacity 0.15s, background 0.15s;
+      }
+
+      button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      #btn-generate {
+        background: #7c6af7;
+        color: #fff;
+      }
+
+      #btn-generate:not(:disabled):hover {
+        background: #6a58e8;
+      }
+
+      #btn-copy {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #3a3a3a;
+      }
+
+      #btn-copy:not(:disabled):hover {
+        background: #333;
+      }
+
+      #btn-copy.copied {
+        background: #1a3a2a;
+        color: #4ecf8a;
+        border-color: #2a6a4a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Carry<span>Over</span> — Context Compression</h1>
+
+      <div class="card">
+        <label for="transcript">Conversation Transcript</label>
+        <textarea
+          id="transcript"
+          placeholder="Paste your ChatGPT or Claude conversation here…"
+        ></textarea>
+
+        <div class="stats-row">
+          <div class="token-badge" id="token-count">0 est. tokens</div>
+          <span class="context-label">Estimated Context Load</span>
+        </div>
+
+        <div class="load-bar-wrap">
+          <div class="load-bar-header">
+            <span>Estimated Context Load</span>
+            <span id="load-pct">0%</span>
+          </div>
+          <div class="load-bar-track">
+            <div class="load-bar-fill" id="load-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="actions">
+          <button id="btn-generate" disabled>Generate Compression Prompt</button>
+          <button id="btn-copy" disabled>Copy Prompt</button>
+        </div>
+
+        <label for="output">Generated Prompt</label>
+        <textarea id="output" readonly placeholder="Output will appear here after you click Generate…"></textarea>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
