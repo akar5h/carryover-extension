@@ -1,13 +1,18 @@
 {
   "name": "carryover-extension",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.4.0",
+    "@types/chrome": "^0.1.43",
+    "@types/node": "^25.9.2",
+    "@types/webextension-polyfill": "^0.12.5",
+    "type-fest": "^5.7.0",
     "typescript": "^5.4.5",
     "vite": "^5.2.11"
   }
