@@ -5,9 +5,8 @@
     "moduleResolution": "bundler",
     "strict": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "outDir": "dist",
-    "rootDir": "src",
-    "noEmit": false
+    "types": ["chrome"],
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "vite.config.ts"]
 }
