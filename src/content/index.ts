@@ -4,7 +4,7 @@ import type { PlatformAdapter } from './adapters/platform-adapter'
 
 function getAdapter(): PlatformAdapter | null {
   if (location.hostname === 'claude.ai') return new ClaudeAdapter()
-  if (location.hostname === 'chat.openai.com') return new ChatGPTAdapter()
+  if (location.hostname === 'chatgpt.com') return new ChatGPTAdapter()
   return null
 }
 
