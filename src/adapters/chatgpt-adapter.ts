@@ -40,10 +40,22 @@ interface ChatGptRaw {
   current_node?: string
 }
 
+const INTERCEPT_TIMEOUT_MS = 12_000
+
 export class ChatGPTAdapter implements PlatformAdapter {
   readonly name = 'chatgpt' as const
 
   private cache = new TranscriptCache()
+  // Populated by carryover:chatgpt-conversation events from the MAIN world interceptor
+  private intercepted = new Map<string, unknown>()
+
+  constructor() {
+    document.addEventListener('carryover:chatgpt-conversation', (e: Event) => {
+      const evt = e as CustomEvent<{ conversationId: string; data: unknown }>
+      const { conversationId, data } = evt.detail ?? {}
+      if (conversationId && data) this.intercepted.set(conversationId, data)
+    })
+  }
 
   isSupportedPage(): boolean {
     return (
@@ -58,36 +70,46 @@ export class ChatGPTAdapter implements PlatformAdapter {
   }
 
   async fetchConversation(conversationId: string): Promise<NormalizedTranscript> {
+    // 1. IndexedDB cache
     const cached = await this.cache.get('chatgpt', conversationId)
     if (cached) return cached.transcript
 
-    const res = await fetch(`/backend-api/conversation/${conversationId}`, {
-      credentials: 'include',
+    // 2. Already intercepted from MAIN world (e.g. page fetched before this was called)
+    const alreadyIntercepted = this.intercepted.get(conversationId)
+    if (alreadyIntercepted) {
+      const transcript = this.normalizeConversation(alreadyIntercepted)
+      await this.cache.set('chatgpt', conversationId, transcript)
+      return transcript
+    }
+
+    // 3. Request from MAIN world cache, then wait for event
+    // The interceptor fires on ChatGPT's own /backend-api/conversation/{id} fetch
+    // (which includes the required anti-bot tokens). We cannot make that call ourselves.
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        document.removeEventListener('carryover:chatgpt-conversation', handler)
+        reject(new Error(`Timeout waiting for ChatGPT conversation ${conversationId}`))
+      }, INTERCEPT_TIMEOUT_MS)
+
+      const handler = (e: Event) => {
+        const evt = e as CustomEvent<{ conversationId: string; data: unknown }>
+        if (evt.detail?.conversationId !== conversationId) return
+        clearTimeout(timer)
+        document.removeEventListener('carryover:chatgpt-conversation', handler)
+        const transcript = this.normalizeConversation(evt.detail.data)
+        void this.cache.set('chatgpt', conversationId, transcript)
+        resolve(transcript)
+      }
+
+      document.addEventListener('carryover:chatgpt-conversation', handler)
+
+      // Trigger MAIN world to replay from its cache if already fetched
+      document.dispatchEvent(
+        new CustomEvent('carryover:chatgpt-request', {
+          detail: { conversationId },
+        })
+      )
     })
-
-    if (res.status === 401 || res.status === 403) {
-      makeError('NOT_LOGGED_IN', 'ChatGPT session expired', false)
-    }
-    if (res.status === 404) {
-      makeError('CONVERSATION_NOT_FOUND', `Conversation ${conversationId} not found`, false)
-    }
-    if (res.status === 429) {
-      makeError('RATE_LIMITED', 'Rate limited by ChatGPT API', true)
-    }
-    if (!res.ok) {
-      makeError('FETCH_FAILED', `Conversation fetch failed: ${res.status}`)
-    }
-
-    let raw: unknown
-    try {
-      raw = await res.json()
-    } catch (e) {
-      makeError('PARSER_FAILED', `Failed to parse ChatGPT response: ${e}`)
-    }
-
-    const transcript = this.normalizeConversation(raw)
-    await this.cache.set('chatgpt', conversationId, transcript)
-    return transcript
   }
 
   normalizeConversation(raw: unknown): NormalizedTranscript {
