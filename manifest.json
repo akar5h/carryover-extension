@@ -29,6 +29,12 @@
       "matches": ["https://chatgpt.com/*", "https://claude.ai/*"],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["src/content/chatgpt-interceptor.ts"],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ]
 }
