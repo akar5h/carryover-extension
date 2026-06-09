@@ -1,4 +1,4 @@
-# Final Verification Verdict — XER-162
+# Final Verification Verdict
 
 ## Status
 
@@ -10,7 +10,7 @@ APPROVE
 
 ## Summary
 
-XER-162 P3-2 Compress Button + Pre-Compression Stats. Four source files changed (badge-panel.ts, badge-updater.ts, badge.ts, package.json) plus lockfile. All deterministic gates pass: typecheck 0 errors, build clean, 27/27 tests pass, gitleaks 0 leaks, semgrep 0 findings, osv-scanner 0 Critical/High (2 pre-existing Medium devDep vulns from XER-160/161). Rollup override correctly bumped ^2.80.0 → ^4.20.0 to restore vite 5 build compatibility; GHSA-mw96-cpmx-2vgc CVE coverage maintained. No security surface: all DOM writes use textContent, no new user input paths, no auth/payment/data changes.
+All deterministic gates passed. 31/31 tests pass (4 new). Build clean. No secrets, no semgrep findings, no High/Critical OSV vulnerabilities. Two pre-existing Medium dev-dep vulns (esbuild, vite) — not introduced by this change. Anti-slop and security reviewers both pass. Three minor warnings are documented and represent accepted V1 trade-offs per spec.
 
 ## Deterministic gate status
 
@@ -22,7 +22,7 @@ PASS
 |---|---|
 | Diff Auditor | PASS |
 | Anti-Slop Reviewer | PASS |
-| Security & Edge Case Reviewer | PASS |
+| Security & Edge Case Reviewer | PASS_WITH_WARNINGS |
 
 ## Blocking issues
 
@@ -30,11 +30,20 @@ None.
 
 ## Human must inspect
 
-None.
+| File | Reason |
+|---|---|
+| (none) | No auth, payment, data, schema, or CORS changes |
+
+## Non-blocking warnings
+
+1. `openNewChatWithText` propagates raw `chrome.storage.session.set` errors instead of wrapping in `AdapterError` — very low probability scenario, acceptable for V1.
+2. `document.execCommand` is deprecated — still works in Chrome extension content scripts; track for future replacement.
+3. Multi-tab race on `carryover:pending_insert` — accepted V1 limitation per spec.
+4. Dev deps esbuild/vite have Medium OSV vulns (pre-existing, not introduced here) — upgrade separately.
 
 ## Missing evidence
 
-None. All acceptance criteria (AC1–7) verified by gates and code review.
+None. All required gates ran; all passed.
 
 ## Confidence
 

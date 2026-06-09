@@ -1,34 +1,23 @@
-# Anti-Slop Review — XER-162
+# Anti-Slop Review
 
-## Verdict
+## Verdict: PASS
 
-PASS
+## Checks
 
-## Slop findings
+**Fake robustness** — None detected. Error handling is real: FETCH_FAILED thrown only when querySelector genuinely returns null. Timeout clears key to prevent infinite retry; no catch-and-swallow for success path.
 
-None.
+**Ornamental code** — None. No unused imports, no redundant type assertions beyond what TypeScript requires.
 
-## Review
+**Over-engineering** — No. Implementation follows spec exactly: 4 selectors, execCommand path, textarea fallback, session storage carryover. No extra abstraction layers.
 
-### badge-panel.ts
-- Import is real and used; not decorative.
-- `messageCount` field added to interface — needed, used once.
-- Two new DOM rows follow exact existing pattern; no novel abstraction.
-- `estimateCompressedTokens` called once per `open()` — correct, not a hot path.
-- Button state via inline style overrides in `open()` — compact and correct for a small DOM component.
-- `reductionPct` guard (`estimatedTokens > 0`) protects real division-by-zero, not defensive padding.
-- Em-dash in `~${low}–${high}` is correct Unicode (U+2013).
+**Bloat** — No. `insertTextIntoComposer` is 20 LOC, `openNewChatWithText` is 3 LOC, `checkPendingInsert` is 25 LOC including polling loop.
 
-### badge-updater.ts
-- Single line addition: reads `.messages.length`, passes to open(). Zero bloat.
+**Naming** — Clear. `PENDING_INSERT_KEY`, `PENDING_INSERT_TIMEOUT_MS`, `PENDING_INSERT_POLL_MS` are self-documenting constants.
 
-### badge.ts
-- CSS `transition` adds real UX benefit, 1 line.
-- Hover rule is meaningful.
+**Dead code** — None. All branches are reachable.
 
-### package.json / package-lock.json
-- Rollup override bump is a real fix for a build-blocking incompatibility. Not cosmetic.
+**Comment quality** — Two comments in implementation: one explaining why execCommand is used over textContent (non-obvious: React synthetic events), one explaining the carryover check safety property. Both are justified WHY comments, not WHAT narration.
 
-## Required cleanup
+## Issues found
 
 None.
