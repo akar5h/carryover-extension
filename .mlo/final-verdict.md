@@ -10,12 +10,11 @@ APPROVE
 
 ## Summary
 
-All deterministic gates passed. 35/35 tests pass (4 new composition tests). Build clean. 0 secrets, 0 semgrep findings, 0 High/Critical OSV vulnerabilities. Two pre-existing Medium dev-dep vulns (esbuild, vite) not introduced by this PR. Anti-slop reviewer: PASS. Security reviewer: PASS_WITH_WARNINGS — three minor INFO warnings, all V1 accepted trade-offs.
+All deterministic gates passed. 43/43 tests pass (8 new compress-handler tests). Build clean. 0 secrets detected. 0 semgrep findings. 0 High/Critical OSV vulnerabilities — two pre-existing Medium dev-dep vulns (esbuild, vite) not introduced by this change. Anti-slop reviewer: PASS. Security reviewer: PASS_WITH_WARNINGS — all INFO/WARNING items are V1 accepted trade-offs, none auto-blocking.
 
-**Branch:** `feat/p3-4-chatgpt-composition`
-**Commits:** `bba294c`, `0771e13`
-**PR:** https://github.com/akar5h/carryover-extension/pull/11
-**Issue:** [XER-164](/XER/issues/XER-164)
+**Branch:** `feat/p3-5-compress-wire`
+**Commit:** `52783be`
+**Issue:** [XER-165](/XER/issues/XER-165)
 
 ## Deterministic gate status
 
@@ -41,9 +40,9 @@ None.
 
 ## Non-blocking warnings
 
-1. `openNewChatWithText` does not wrap `chrome.storage.session.set` rejection in `AdapterError` — raw rejection propagates. Very low probability; acceptable V1.
-2. `document.execCommand` deprecated — still functional in Chrome MV3 content scripts; track for future replacement with `InputEvent` + `DataTransfer`.
-3. Popup window blocked silently — `window.open` returns null; no user feedback. Accepted V1 trade-off.
+1. `adapter.openNewChatWithText!` uses non-null assertion — safe with current adapters; add guard if adapter list expands.
+2. Popup window blocked silently — `window.open` returns null with no user feedback. Pre-existing V1 trade-off.
+3. Very large transcripts are not truncated before insertion into composer — platform handles gracefully in practice.
 4. Dev deps esbuild/vite have Medium OSV vulns (pre-existing, not introduced here) — upgrade in a separate ticket.
 
 ## Missing evidence

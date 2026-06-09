@@ -2,41 +2,48 @@
 
 ## Change summary
 
-**Branch:** `feat/p3-4-chatgpt-composition`
-**Issue:** XER-164
-**Commits:** bba294c, 0771e13
-**Files changed:** 3 (+119 / -6)
+**Branch:** `feat/p3-5-compress-wire`
+**Issue:** XER-165
+**Commits:** 52783be
+**Files changed:** 4 (+199 / -0)
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/adapters/chatgpt-adapter.ts` | modified | Add `insertTextIntoComposer` + `openNewChatWithText` | low |
-| `src/adapters/__tests__/chatgpt-adapter.test.ts` | modified | Add chrome global stub + 4 composition tests | low |
-| `src/content/index.ts` | modified | Extend `checkPendingInsert` to chatgpt.com (AC4) | low |
+| `src/content/badge/badge-panel.ts` | modified | Extend `BadgePanel` interface + impl: `showMessage`, `clearMessage`, `setCompressState`, `onCompress`; add `msgEl` DOM node and `btn` click listener | low |
+| `src/content/badge/compress-handler.ts` | added | New module: `onCompressClick` — testable pipeline handler (fetch → build prompt → open tab) | low |
+| `src/content/badge/badge-updater.ts` | modified | Import compress-handler; wire `panel.onCompress(() => onCompressClick(...))` | low |
+| `src/content/badge/__tests__/compress-handler.test.ts` | added | 8 unit tests covering success, error, no-convId, loading state sequencing | low |
 
 ## Behavior changed
 
-- User-facing behavior: ChatGPT composer can receive text injected by the extension; new tab at chatgpt.com can receive a pending insert via session storage
-- API behavior: none
-- DB/schema behavior: none
-- Background job behavior: none
-- Config/env behavior: none — uses existing `chrome.storage.session` infra
-- Auth/security behavior: none
-- Frontend behavior: `insertTextIntoComposer` manipulates ChatGPT page DOM via `querySelector` + `execCommand` or `.value`; `openNewChatWithText` calls `window.open`
+- **User-facing behavior:** Clicking "Compress & Carry Over" now runs the full pipeline (was: button existed but had no handler bound). Button shows "Opening…" while async work runs; shows instruction message on success; shows error message on failure.
+- **API behavior:** None — no API contracts changed.
+- **DB/schema behavior:** None.
+- **Background job behavior:** None.
+- **Config/env behavior:** None.
+- **Auth/security behavior:** None — tab open uses pre-existing `openNewChatWithText` (chrome.storage.session + window.open, implemented in XER-163/164).
+- **Frontend behavior:** Badge panel gains a `co-panel-msg` div (hidden by default) and reactive button text.
 
 ## Blast radius
 
-- Modules touched: `ChatGPTAdapter` class only
-- External services touched: none (DOM manipulation in-page)
-- Data models touched: none
-- Auth/payment/user-data touched: none
-- Build/deploy config touched: none
+- **Modules touched:** badge-panel, badge-updater, compress-handler (new)
+- **External services touched:** None — `openNewChatWithText` already implemented in prior phases
+- **Data models touched:** None
+- **Auth/payment/user-data touched:** None
+- **Build/deploy config touched:** None
 
 ## Suspicious areas
 
-None. Change is narrowly scoped. No validation removed. No tests deleted. No unrelated files touched.
+None:
+- No unrelated files changed
+- Diff strictly additive (199 lines, 0 deletions)
+- No validation deleted
+- No tests deleted — 8 new tests added
+- Error handling is intentional: catch block covers async pipeline, surfaces user-friendly message
+- No env changes, no auth changes, no permissions changes
 
 ## Human inspection required
 
-None — no auth, payment, user-data, schema, env, or external API contract changes.
+None — no auth, payment, user-data, schema, or CORS changes.

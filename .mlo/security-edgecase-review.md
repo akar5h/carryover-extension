@@ -6,19 +6,18 @@
 
 | Severity | File | Finding | Risk | Required fix |
 |---|---|---|---|---|
-| INFO | `chatgpt-adapter.ts` | `document.execCommand('insertText')` deprecated | Deprecated API; still functional in Chrome MV3 extension content scripts. No XSS vector — user-controlled text inserted into focused element the user already has access to. | None (track for future replacement) |
-| INFO | `chatgpt-adapter.ts` | `chrome.storage.session` used for carryover key | Session-scoped (cleared on browser close), not local/sync. Correct minimal-persistence choice. | None |
-| INFO | `chatgpt-adapter.ts` | `window.open('https://chatgpt.com/', '_blank')` | Hardcoded chatgpt.com domain. Text goes to session storage, not URL. No open-redirect risk. | None |
+| INFO | `compress-handler.ts` | `adapter.openNewChatWithText!` — non-null assertion | Both adapters define this method. If a future adapter omits it, the `!` causes a runtime crash. Not a security issue — no user-controlled input reaches this path unsanitized. | None (V1 accepted) |
+| INFO | `compress-handler.ts` | Compression prompt contains full conversation text from `buildCompressionPrompt` | Text goes to the platform's own composer via `chrome.storage.session`. No third-party service; no PII exfiltration beyond what the platform already has. | None |
 
 ## Edge-case findings
 
 | Severity | File | Edge case | Failure mode | Required fix |
 |---|---|---|---|---|
-| WARNING | `chatgpt-adapter.ts` | No composer element found | Throws `FETCH_FAILED` (recoverable) — correctly handled | None |
-| WARNING | `chatgpt-adapter.ts` | Popup window blocked by browser | `window.open` returns null silently; user sees no feedback | Acceptable V1 trade-off per spec |
-| INFO | `chatgpt-adapter.ts` | Multiple contenteditable elements on page | `querySelector` selects first; specific `#prompt-textarea` runs first to minimise false match | Low risk in practice |
-| INFO | `chatgpt-adapter.ts` | `chrome.storage.session.set` unavailable | Error propagates as raw rejection (not `AdapterError`) | Low-probability; acceptable V1 |
-| INFO | `chatgpt-adapter.ts` | Empty string passed to `insertTextIntoComposer` | Inserts empty string; no guard. Not a crash. | Spec does not require guard |
+| WARNING | `compress-handler.ts` | `openNewChatWithText` called but popup blocked by browser | `window.open` returns null silently; user sees "Press Enter..." instruction but no tab opened | Acceptable V1 — pre-existing behaviour from XER-163/164 |
+| WARNING | `compress-handler.ts` | Very large transcript | `buildCompressionPrompt` joins all messages; no truncation. Could produce a very long prompt (e.g. 200k token conversation). Inserted into composer which may have a character limit. | Platform composer handles gracefully via truncation or scroll; V1 accepted |
+| INFO | `compress-handler.ts` | Double-click on compress button | `compressHandler` is not guarded against concurrent calls. Button is disabled on `setCompressState('loading')` so double-fire is visually impossible. | None — state machine prevents it |
+| INFO | `compress-handler.ts` | `fetchConversation` throws a non-Error (string, object) | Caught; `'Unknown error'` shown to user. Correct fallback. | None |
+| INFO | `badge-panel.ts` | `setCompressState('idle')` re-enables button regardless of `messageCount` | On load-then-error, button returns enabled even if original stats had messageCount=0. Benign because no messages → pipeline would show "no conversation found" anyway. | None |
 
 ## Human review required
 
@@ -30,4 +29,4 @@ None.
 
 ## Suggested tests
 
-- (Optional) Test empty-string input to `insertTextIntoComposer` — verifies no crash path.
+- (Optional) Test the case where `adapter.openNewChatWithText` is undefined — verifies runtime behavior when an adapter omits it.
