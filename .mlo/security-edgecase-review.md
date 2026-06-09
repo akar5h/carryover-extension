@@ -8,33 +8,32 @@ PASS_WITH_WARNINGS
 
 | Severity | File | Finding | Risk | Required fix |
 |---|---|---|---|---|
-| warning | claude-adapter.ts | `credentials: 'include'` on fetch to /api/organizations and /api/organizations/{org}/chat_conversations/{conv} | Sends session cookies; safe because fetch only executes when hostname === 'claude.ai' (same-origin). If isSupportedPage() guard ever misconfigured, could fire on wrong origin. | None — guarded by isSupportedPage() and content_scripts match patterns in manifest |
-| warning | chatgpt-adapter.ts | `credentials: 'include'` on fetch to /backend-api/conversation/{id} | Same as above; fetch fires on chatgpt.com/chat.openai.com only per isSupportedPage() | None — guarded by hostname check |
-| info | claude-adapter.ts | Org ID stored in chrome.storage.session | Cleared when browser session ends; not persisted. Acceptable for short-lived cache. | None |
-| info | all | No innerHTML, eval, or dynamic script injection | No XSS surface in new code | None |
-| info | spa-navigator.ts | history.pushState monkey-patch | Replaces native function; could affect page code checking `history.pushState === nativePushState`. Standard extension pattern; no security risk. | None |
+| warning | src/content/chatgpt-interceptor.ts | `window.fetch` patched in MAIN world | Any page code checking `fetch === originalFetch` may detect the patch; extension intercepts ALL fetch calls on chatgpt.com | None — standard extension pattern; matches XER-159 precedent |
+| warning | src/adapters/claude-adapter.ts | `credentials: 'include'` on fetch to Claude internal APIs | Sends session cookies; safe because fetch only executes when hostname === 'claude.ai' (isSupportedPage() + manifest match pattern) | None — confirmed hostname guard |
+| info | src/content/chatgpt-interceptor.ts | Reads response body via `res.clone().json()` | Reads conversation data already visible in the page's network layer; no exfiltration | None — extension reads its own page traffic |
+| info | src/adapters/claude-adapter.ts | Org ID stored in chrome.storage.session | Cleared on browser session end; not persisted to disk | None — acceptable for session-scoped cache |
+| info | all | No innerHTML, eval, or dynamic script injection in new code | No XSS surface | None |
 
 ## Edge-case findings
 
 | Severity | File | Edge case | Failure mode | Required fix |
 |---|---|---|---|---|
-| warning | claude-adapter.ts | API response shape changes (chat_messages field renamed, tree format changes) | normalizeConversation returns empty messages array; badge shows 0 tokens | Non-blocking — silent failure is correct; DOM fallback not wired but spec says that's acceptable |
-| warning | chatgpt-adapter.ts | `current_node` missing AND no leaf detectable (empty mapping) | orderedIds = []; normalizeConversation returns empty messages | Non-blocking — correct behavior for empty conversations |
-| warning | badge-updater.ts | fetchConversation throws (401, 404, 429, network) during badge click | Caught silently; panel shows 0 tokens | Non-blocking — panel still opens with 0 count |
-| warning | spa-navigator.ts | MutationObserver on `<title>` fires before DOM is ready (title element not found) | titleObserver.observe never called; silent | Non-blocking — pushState/popstate listeners are primary; title is fallback only |
-| info | claude-adapter.ts | getOrganizationId called concurrently (two rapid fetchConversation calls) | Both may fetch /api/organizations; second will overwrite cachedOrgId with same value | No correctness issue; minor redundant request |
-| info | transcript-cache.ts | IndexedDB open fails (private browsing without extension permission) | `open()` throws; `get()` and `set()` catch and return null/void | Correct — cache failure is non-fatal |
-| info | chatgpt-adapter.ts | conversationId from URL returns 'unknown' if called in normalizeConversation without a page URL | transcript.conversationId = 'unknown' | Only an issue in unit tests without URL stubbing; not a runtime concern |
-| info | claude-adapter.ts | Leaf walk cycles (pathological tree with circular parent_message_uuid) | `seen` Set prevents infinite loop | Correct |
-| info | chatgpt-adapter.ts | Mapping node with null message | Skipped via `if (!node?.message) continue` | Correct |
+| warning | src/adapters/chatgpt-adapter.ts | 12s timeout if ChatGPT doesn't fetch conversation in 12s | fetchConversation() rejects; badge stays at 0 tokens | Non-blocking — correct behavior; MutationObserver may retry |
+| warning | src/adapters/chatgpt-adapter.ts | SPA navigation: ChatGPT may not re-fetch conversation API on in-app navigation (uses cached React state) | interceptor never fires for the new conversation; fetchConversation times out | Non-blocking — known limitation of intercept-only approach |
+| warning | src/adapters/claude-adapter.ts | getOrganizationId concurrent calls (two rapid fetchConversation calls before first resolves) | Both fetch /api/organizations; second overwrites cachedOrgId with same value | Harmless — same result both times |
+| warning | src/content/chatgpt-interceptor.ts | URL regex `/\/backend-api\/conversation\/([a-zA-Z0-9_-]+)(?:[?#]|$)/` may miss future ChatGPT API URL changes | Interceptor silently does nothing; badge stays at 0 | Non-blocking — correct failure mode |
+| info | src/adapters/transcript-cache.ts | IndexedDB unavailable (private browsing without extension permission) | get/set catch and return null/void silently | Correct — cache failure is non-fatal |
+| info | src/adapters/chatgpt-adapter.ts | constructor registers document.addEventListener on every instantiation | If multiple instances created, multiple listeners accumulate | Architectural note — startBadgeUpdater creates one adapter per page; acceptable |
+| info | src/content/spa-navigator.ts | history.pushState monkey-patch | Could affect platform code checking pushState identity | Standard pattern; no security risk |
+| info | src/adapters/claude-adapter.ts | Leaf walk cycle guard (seen Set) | Prevents infinite loop on pathological tree | Correct |
 
 ## Human review required
 
 | File | Reason |
 |---|---|
-| src/adapters/claude-adapter.ts | Verify `credentials: 'include'` fetch only fires on claude.ai hostname — inspect isSupportedPage() and manifest match patterns |
-| src/adapters/chatgpt-adapter.ts | Same for chatgpt.com / chat.openai.com |
-| src/adapters/claude-adapter.ts | Org selection predicate fields (`active_flags`, `capabilities`) — verify against live /api/organizations response shape |
+| src/content/chatgpt-interceptor.ts | window.fetch patch — verify URL regex captures all ChatGPT conversation patterns (including project conversations, GPT builder, etc.) |
+| manifest.json | `world: "MAIN"` + `run_at: "document_start"` — confirm crxjs MV3 build produces standalone IIFE with no chrome.* calls |
+| src/adapters/claude-adapter.ts | credentials:include — verify isSupportedPage() + manifest match patterns leave no cross-origin gaps |
 
 ## Auto-blocking issues
 
@@ -42,9 +41,7 @@ None.
 
 ## Suggested tests
 
-- Unit test: ClaudeAdapter.normalizeConversation with a real /api/organizations/.../chat_conversations response fixture
-- Unit test: ChatGPTAdapter.normalizeConversation with a mapping fixture — verify correct branch selected via current_node
-- Unit test: TranscriptCache.get/set/delete cycle
-- Unit test: SpaNavigator — verify onConversationChange fires when pathname changes
-- Integration test: load a Claude conversation → verify NormalizedTranscript has more messages than visible DOM
-- Integration test: SPA navigate between two Claude conversations → verify cachedTranscript resets
+- Integration test: load extension → open Claude conversation → verify NormalizedTranscript has messages beyond DOM scroll viewport
+- Integration test: ChatGPT SPA navigation — open conversation A, navigate to conversation B → verify cachedTranscript resets and badge updates for B
+- Integration test: Claude conversation with branched messages → verify only active branch messages appear, no duplicates
+- Timeout test: ChatGPT with a page that never fetches conversation API → verify badge shows 0 cleanly after 12s

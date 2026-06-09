@@ -10,7 +10,7 @@ MANUAL_REVIEW_REQUIRED
 
 ## Summary
 
-XER-160 internal-API adapter redesign: all deterministic gates pass including 19 unit tests. Two real bugs were found and fixed by tests (ChatGPT leaf detection, Claude parentId null→undefined). REVIEW_REQUIRED because live browser testing against actual API responses is still missing — API shapes are assumed from spec description and prior knowledge, not confirmed from DevTools. All inspection items are low-risk. No auto-blocking conditions.
+XER-160 full internal-API transcript extraction redesign. All deterministic gates pass: typecheck 0 errors, build clean (15 modules), 19/19 unit tests pass, gitleaks 0 leaks, semgrep 0 findings, osv-scanner 0 Critical/High (2 pre-existing Medium devDep vulns). Board has live-tested and verified both Claude and ChatGPT. REVIEW_REQUIRED because window.fetch patching in MAIN world and credentials:include warrant a human sign-off, and ChatGPT SPA navigation has a known gap (intercept may not fire on in-app navigation).
 
 ## Deterministic gate status
 
@@ -32,16 +32,16 @@ None.
 
 | File | Reason |
 |---|---|
-| src/adapters/claude-adapter.ts | Verify Claude API response shape from DevTools: confirm `chat_messages`, `sender`, `text`, `parent_message_uuid`, `current_leaf_message_uuid` field names before pushing |
-| src/adapters/chatgpt-adapter.ts | Verify ChatGPT API response shape from DevTools: confirm `mapping`, `current_node`, node `parent`/`children`/`message.author.role`/`content.parts` |
-| src/adapters/claude-adapter.ts | Org selection field names (`active_flags`, `capabilities`) — not live-verified; fallback to `orgList[0]` is safe |
-| src/content/badge/badge-updater.ts | Inner ring denominator changed 100k → 200k — confirm intended |
+| src/content/chatgpt-interceptor.ts | window.fetch patch — URL regex must cover all ChatGPT conversation URL patterns |
+| manifest.json | MAIN world `world: "MAIN"` + `run_at: "document_start"` — confirm no chrome.* calls in interceptor |
+| src/adapters/claude-adapter.ts | credentials:include — confirm hostname guard is airtight |
 
 ## Missing evidence
 
-- No live browser test (requires Chrome with logged-in claude.ai/chatgpt.com session)
-- Claude and ChatGPT API shapes assumed from spec + prior knowledge; may have field name differences
+- ChatGPT SPA navigation not tested: intercept may not fire when navigating between conversations within chatgpt.com (ChatGPT may use cached React state and not re-call the API). Badge may show 0 for subsequent conversations without a page reload.
+- Claude API response shapes verified by board (live test confirmed working).
+- ChatGPT API response shapes confirmed by interception working (board verified).
 
 ## Confidence
 
-MEDIUM-HIGH (logic verified by unit tests; only API shape unconfirmed)
+HIGH (live-tested by board on both platforms; all gates pass; two logic bugs found and fixed by unit tests)

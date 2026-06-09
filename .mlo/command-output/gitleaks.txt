@@ -1,2 +1,0 @@
-=== gitleaks ===
-exit: 0
