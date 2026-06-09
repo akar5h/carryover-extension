@@ -2,31 +2,40 @@
 
 ## Change summary
 
-**Branch:** `feat/p3-3-claude-composition`
-**Issue:** XER-163
-**Files changed:** 3 (+151 / -2)
+**Branch:** `feat/p3-4-chatgpt-composition`
+**Issue:** XER-164
+**Commit:** bba294c
+**Files changed:** 2 (+113 / -1)
 
 ## Files changed
 
-| File | Change type | Risk |
-|---|---|---|
-| `src/adapters/claude-adapter.ts` | New methods | LOW |
-| `src/adapters/__tests__/claude-adapter.test.ts` | Tests | LOW |
-| `src/content/index.ts` | Carryover check | LOW |
+| File | Change type | Reason | Risk |
+|---|---|---|---|
+| `src/adapters/chatgpt-adapter.ts` | modified | Add `insertTextIntoComposer` + `openNewChatWithText` | low |
+| `src/adapters/__tests__/chatgpt-adapter.test.ts` | modified | Add chrome global stub + 4 composition tests | low |
 
-## Functional changes
+## Behavior changed
 
-### `insertTextIntoComposer(text)`
-- 4-selector priority chain (scoped fieldset → aria-label → generic contenteditable → textarea)
-- Focuses element; TEXTAREA: sets `.value` + dispatches `input`; contenteditable: `execCommand('insertText')`
-- Throws `FETCH_FAILED` (recoverable) if no element found
+- User-facing behavior: ChatGPT composer can receive text injected by the extension; new tab at chatgpt.com can receive a pending insert via session storage
+- API behavior: none
+- DB/schema behavior: none
+- Background job behavior: none
+- Config/env behavior: none — uses existing `chrome.storage.session` infra
+- Auth/security behavior: none
+- Frontend behavior: `insertTextIntoComposer` manipulates ChatGPT page DOM via `querySelector` + `execCommand` or `.value`; `openNewChatWithText` calls `window.open`
 
-### `openNewChatWithText(text)`
-- Stores text in `chrome.storage.session['carryover:pending_insert']`
-- Opens `claude.ai/new` in new tab via `window.open`
+## Blast radius
 
-### `content/index.ts` — `checkPendingInsert()`
-- Polls up to 3000ms (100ms intervals) for composer on any claude.ai load
-- Clears key on success or timeout
+- Modules touched: `ChatGPTAdapter` class only
+- External services touched: none (DOM manipulation in-page)
+- Data models touched: none
+- Auth/payment/user-data touched: none
+- Build/deploy config touched: none
 
-## Risk: LOW — no auth/payment/data/schema changes
+## Suspicious areas
+
+None. Change is narrowly scoped. No validation removed. No tests deleted. No unrelated files touched.
+
+## Human inspection required
+
+None — no auth, payment, user-data, schema, env, or external API contract changes.

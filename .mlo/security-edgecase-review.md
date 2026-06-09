@@ -4,27 +4,30 @@
 
 ## Security findings
 
-**None blocking.**
+| Severity | File | Finding | Risk | Required fix |
+|---|---|---|---|---|
+| INFO | `chatgpt-adapter.ts` | `document.execCommand('insertText')` deprecated | Deprecated API; still functional in Chrome MV3 extension content scripts. No XSS vector — user-controlled text inserted into focused element the user already has access to. | None (track for future replacement) |
+| INFO | `chatgpt-adapter.ts` | `chrome.storage.session` used for carryover key | Session-scoped (cleared on browser close), not local/sync. Correct minimal-persistence choice. | None |
+| INFO | `chatgpt-adapter.ts` | `window.open('https://chatgpt.com/', '_blank')` | Hardcoded chatgpt.com domain. Text goes to session storage, not URL. No open-redirect risk. | None |
 
-- `document.execCommand('insertText')` — deprecated API, still fully functional in Chrome MV3 extension content scripts. No security implication: it only inserts text the user-supplied string into the focused element. No XSS vector since this runs in a content script with the page's own DOM.
-- `window.open('https://claude.ai/new', '_blank')` — hardcoded to claude.ai domain. Not injectable; the text goes to session storage, not the URL. No open-redirect risk.
-- `chrome.storage.session` — session-scoped (cleared on browser close), not `chrome.storage.local` or `sync`. Correct choice; minimises persistence of user text.
+## Edge-case findings
 
-## Edge cases
+| Severity | File | Edge case | Failure mode | Required fix |
+|---|---|---|---|---|
+| WARNING | `chatgpt-adapter.ts` | No composer element found | Throws `FETCH_FAILED` (recoverable) — correctly handled | None |
+| WARNING | `chatgpt-adapter.ts` | Popup window blocked by browser | `window.open` returns null silently; user sees no feedback | Acceptable V1 trade-off per spec |
+| INFO | `chatgpt-adapter.ts` | Multiple contenteditable elements on page | `querySelector` selects first; specific `#prompt-textarea` runs first to minimise false match | Low risk in practice |
+| INFO | `chatgpt-adapter.ts` | `chrome.storage.session.set` unavailable | Error propagates as raw rejection (not `AdapterError`) | Low-probability; acceptable V1 |
+| INFO | `chatgpt-adapter.ts` | Empty string passed to `insertTextIntoComposer` | Inserts empty string; no guard. Not a crash. | Spec does not require guard |
 
-| Case | Handled? | Notes |
-|---|---|---|
-| No composer element on page | ✅ | Throws FETCH_FAILED |
-| Textarea fallback | ✅ | Detected by tagName, sets .value |
-| Multiple contenteditable elements (e.g. code blocks) | ⚠️ | Selects first match via querySelector; fieldset-scoped selector runs first to reduce false matches. Risk is low in practice. |
-| New tab popup blocked | ⚠️ | `window.open` returns null; no error thrown. User sees no feedback. Acceptable for V1. |
-| Another claude.ai tab consumes the carryover key | ⚠️ | Race condition; key cleared by the first tab that successfully inserts. V1 known limitation per spec. |
-| insertTextIntoComposer called on non-claude.ai page | ✅ | Throws FETCH_FAILED (no composer element). |
-| checkPendingInsert called when text is empty string | ✅ | `typeof text !== 'string' || !text` guard returns early. |
-| chrome.storage.session unavailable | ✅ | try/catch in checkPendingInsert returns early; openNewChatWithText propagates storage error (not wrapped in AdapterError — minor gap). |
+## Human review required
 
-## Warnings (non-blocking)
+None — no auth, payment, user-data, DB schema, CORS, or rate-limiting changes.
 
-1. `openNewChatWithText` does not wrap `chrome.storage.session.set` errors in `AdapterError`. If storage is unavailable, error propagates as a raw DOMException. Low probability scenario.
-2. `document.execCommand` is deprecated. Chrome still supports it in extension context but may remove it in a future version. Track for future replacement with `InputEvent` + `DataTransfer`.
-3. Race condition on multi-tab carryover (noted above). Acceptable V1 trade-off.
+## Auto-blocking issues
+
+None.
+
+## Suggested tests
+
+- (Optional) Test empty-string input to `insertTextIntoComposer` — verifies no crash path.
