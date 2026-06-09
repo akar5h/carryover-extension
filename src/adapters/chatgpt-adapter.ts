@@ -178,8 +178,8 @@ export class ChatGPTAdapter implements PlatformAdapter {
       }
     }
 
-    // Leaf nodes = nodes not in any children list
-    const leaves = ids.filter((id) => !childSet.has(id) && mapping[id].message)
+    // Leaf nodes = nodes with no children of their own (bottom of tree)
+    const leaves = ids.filter((id) => (mapping[id].children?.length ?? 0) === 0 && mapping[id].message)
     if (leaves.length === 0) return ids[ids.length - 1] ?? null
 
     // Pick leaf on longest path

@@ -147,7 +147,7 @@ export class ClaudeAdapter implements PlatformAdapter {
       text: this.extractText(m),
       createdAt: m['created_at'] as string | undefined,
       updatedAt: m['updated_at'] as string | undefined,
-      parentId: m['parent_message_uuid'] as string | undefined,
+      parentId: (m['parent_message_uuid'] as string | null | undefined) ?? undefined,
       childrenIds: (m['children_message_uuids'] as string[] | undefined) ?? [],
     }))
 
