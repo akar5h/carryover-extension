@@ -1,6 +1,7 @@
 import type { PlatformAdapter, NormalizedTranscript } from '../../adapters/types'
 import { createBadge, INNER_CIRC, OUTER_CIRC } from './badge'
 import { createBadgePanel } from './badge-panel'
+import { onCompressClick } from './compress-handler'
 import type { SpaNavigator } from '../spa-navigator'
 
 // Chars-per-token industry estimate: OpenAI / Anthropic both use ~4 chars = 1 token
@@ -36,6 +37,8 @@ export function startBadgeUpdater(adapter: PlatformAdapter, navigator: SpaNaviga
 
   let cachedTranscript: NormalizedTranscript | null = null
   let fetchInFlight = false
+
+  panel.onCompress(() => onCompressClick(adapter, cachedTranscript, panel))
 
   async function fetchAndUpdate(): Promise<void> {
     if (fetchInFlight) return

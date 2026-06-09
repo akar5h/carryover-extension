@@ -12,6 +12,10 @@ export interface BadgePanel {
   open(stats: PanelStats): void
   close(): void
   isOpen(): boolean
+  showMessage(msg: string): void
+  clearMessage(): void
+  setCompressState(state: 'idle' | 'loading'): void
+  onCompress(handler: () => Promise<void>): void
 }
 
 export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
@@ -86,6 +90,10 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   btn.textContent = 'Compress & Carry Over'
   btn.disabled = true
 
+  const msgEl = document.createElement('div')
+  msgEl.className = 'co-panel-msg'
+  msgEl.style.display = 'none'
+
   panel.appendChild(header)
   panel.appendChild(divider1)
   panel.appendChild(rowTokens)
@@ -96,6 +104,13 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   panel.appendChild(rowReduction)
   panel.appendChild(divider3)
   panel.appendChild(btn)
+  panel.appendChild(msgEl)
+
+  let compressHandler: (() => Promise<void>) | null = null
+
+  btn.addEventListener('click', () => {
+    if (compressHandler) void compressHandler()
+  })
 
   return {
     el: panel,
@@ -129,6 +144,26 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     },
     isOpen(): boolean {
       return visible
+    },
+    showMessage(msg: string): void {
+      msgEl.textContent = msg
+      msgEl.style.display = ''
+    },
+    clearMessage(): void {
+      msgEl.textContent = ''
+      msgEl.style.display = 'none'
+    },
+    setCompressState(state: 'idle' | 'loading'): void {
+      if (state === 'loading') {
+        btn.textContent = 'Opening...'
+        btn.disabled = true
+      } else {
+        btn.textContent = 'Compress & Carry Over'
+        btn.disabled = false
+      }
+    },
+    onCompress(handler: () => Promise<void>): void {
+      compressHandler = handler
     },
   }
 }
