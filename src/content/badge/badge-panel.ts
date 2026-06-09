@@ -1,7 +1,10 @@
+import { estimateCompressedTokens } from '../../compression/prompt-builder'
+
 export interface PanelStats {
   estimatedTokens: number
   contextLoadPct: number
   platformUsagePct: number | null
+  messageCount: number
 }
 
 export interface BadgePanel {
@@ -57,11 +60,31 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   const divider2 = document.createElement('div')
   divider2.className = 'co-panel-divider'
 
+  const rowIfCompressed = document.createElement('div')
+  rowIfCompressed.className = 'co-panel-row'
+  const rowIfCompressedLabel = document.createElement('span')
+  rowIfCompressedLabel.textContent = 'If compressed:'
+  const rowIfCompressedValue = document.createElement('span')
+  rowIfCompressedValue.className = 'co-panel-value'
+  rowIfCompressed.appendChild(rowIfCompressedLabel)
+  rowIfCompressed.appendChild(rowIfCompressedValue)
+
+  const rowReduction = document.createElement('div')
+  rowReduction.className = 'co-panel-row'
+  const rowReductionLabel = document.createElement('span')
+  rowReductionLabel.textContent = 'Est. reduction:'
+  const rowReductionValue = document.createElement('span')
+  rowReductionValue.className = 'co-panel-value'
+  rowReduction.appendChild(rowReductionLabel)
+  rowReduction.appendChild(rowReductionValue)
+
+  const divider3 = document.createElement('div')
+  divider3.className = 'co-panel-divider'
+
   const btn = document.createElement('button')
   btn.className = 'co-btn-compress'
   btn.textContent = 'Compress & Carry Over'
   btn.disabled = true
-  btn.title = 'Coming in next update'
 
   panel.appendChild(header)
   panel.appendChild(divider1)
@@ -69,6 +92,9 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   panel.appendChild(rowLoad)
   panel.appendChild(rowPlatform)
   panel.appendChild(divider2)
+  panel.appendChild(rowIfCompressed)
+  panel.appendChild(rowReduction)
+  panel.appendChild(divider3)
   panel.appendChild(btn)
 
   return {
@@ -80,6 +106,20 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
         rowPlatformValue.textContent =
           stats.platformUsagePct !== null ? `${Math.round(stats.platformUsagePct)}%` : '-'
       }
+
+      const { low, high } = estimateCompressedTokens(stats.estimatedTokens)
+      rowIfCompressedValue.textContent = `~${low.toLocaleString()}–${high.toLocaleString()}`
+      const reductionPct = stats.estimatedTokens > 0
+        ? Math.round((1 - low / stats.estimatedTokens) * 100)
+        : 0
+      rowReductionValue.textContent = `~${reductionPct}%`
+
+      const hasMessages = stats.messageCount > 0
+      btn.disabled = !hasMessages
+      btn.style.cursor = hasMessages ? 'pointer' : 'not-allowed'
+      btn.style.opacity = hasMessages ? '1' : '0.6'
+      btn.style.color = hasMessages ? '#e0e0e0' : '#666'
+
       panel.style.display = ''
       visible = true
     },
