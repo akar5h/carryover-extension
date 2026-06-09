@@ -1,6 +1,22 @@
-import type { PlatformAdapter } from './platform-adapter'
+import type { PlatformAdapter, MessageEntry } from './platform-adapter'
 
 export class ChatGPTAdapter implements PlatformAdapter {
+  extractVisibleMessages(): MessageEntry[] {
+    try {
+      const els = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-message-id]')
+      )
+      return els
+        .map((el) => ({
+          id: el.getAttribute('data-message-id') ?? '',
+          text: el.innerText?.trim() ?? '',
+        }))
+        .filter((m) => m.id && m.text.length > 0)
+    } catch {
+      return []
+    }
+  }
+
   extractTranscript(): string {
     try {
       // Primary: [data-message-id] elements with explicit role attribute

@@ -1,6 +1,42 @@
-import type { PlatformAdapter } from './platform-adapter'
+import type { PlatformAdapter, MessageEntry } from './platform-adapter'
+
+function hashText(s: string): string {
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  }
+  return 'cl-' + (h >>> 0).toString(16)
+}
 
 export class ClaudeAdapter implements PlatformAdapter {
+  extractVisibleMessages(): MessageEntry[] {
+    try {
+      let nodes = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-is-streaming="false"] .font-claude-message'
+        )
+      )
+      if (nodes.length === 0) {
+        nodes = Array.from(
+          document.querySelectorAll<HTMLElement>('[data-testid*="message"]')
+        )
+      }
+      if (nodes.length === 0) {
+        nodes = Array.from(
+          document.querySelectorAll<HTMLElement>('div[class*="message"]')
+        )
+      }
+      return nodes
+        .map((node) => {
+          const text = node.innerText?.trim() ?? ''
+          return { id: hashText(text), text }
+        })
+        .filter((m) => m.text.length > 0)
+    } catch {
+      return []
+    }
+  }
+
   extractTranscript(): string {
     try {
       // Primary: fully-streamed claude.ai message containers

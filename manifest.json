@@ -27,6 +27,12 @@
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*", "https://claude.ai/*"],
+      "js": ["src/content/fetch-interceptor.ts"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://chatgpt.com/*", "https://claude.ai/*"],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
     }

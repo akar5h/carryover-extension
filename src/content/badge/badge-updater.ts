@@ -10,64 +10,88 @@ function clamp(val: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, val))
 }
 
+// Accumulator: grows only — never shrinks on scroll/DOM changes.
+// Written by MutationObserver (DOM fallback) and carryover:messages listener (fetch intercept).
+export const seenMessages = new Map<string, string>()
+
+let _innerFill: SVGCircleElement | null = null
+let _outerFill: SVGCircleElement | null = null
+let _outerTrack: SVGCircleElement | null = null
+let _panel: ReturnType<typeof createBadgePanel> | null = null
+let _adapter: PlatformAdapter | null = null
+
+export function updateBadge(fullTranscript: string): void {
+  if (!_innerFill || !_outerFill || !_outerTrack) return
+  try {
+    const innerPct = clamp(estimateTokens(fullTranscript) / 100_000, 0, 1)
+    _innerFill.style.strokeDasharray = `${INNER_CIRC}`
+    _innerFill.style.strokeDashoffset = `${INNER_CIRC * (1 - innerPct)}`
+
+    const usagePct = _adapter?.getPlatformUsagePct() ?? null
+    if (usagePct === null) {
+      _outerTrack.style.display = 'none'
+      _outerFill.style.display = 'none'
+    } else {
+      _outerTrack.style.display = ''
+      _outerFill.style.display = ''
+      const outerPct = clamp(usagePct / 100, 0, 1)
+      _outerFill.style.strokeDasharray = `${OUTER_CIRC}`
+      _outerFill.style.strokeDashoffset = `${OUTER_CIRC * (1 - outerPct)}`
+    }
+  } catch {
+    // silent — ring stays at last value
+  }
+}
+
+function accumulatedTranscript(): string {
+  return [...seenMessages.values()].join('\n')
+}
+
 export function startBadgeUpdater(adapter: PlatformAdapter): void {
+  _adapter = adapter
+
   const { badgeEl, innerFill, outerFill, outerTrack } = createBadge()
+  _innerFill = innerFill
+  _outerFill = outerFill
+  _outerTrack = outerTrack
 
   const showPlatformUsage = location.hostname === 'claude.ai'
-  const panel = createBadgePanel(showPlatformUsage)
-  document.body.appendChild(panel.el)
+  _panel = createBadgePanel(showPlatformUsage)
+  document.body.appendChild(_panel.el)
 
   badgeEl.addEventListener('click', (e: MouseEvent) => {
     e.stopPropagation()
-    if (panel.isOpen()) {
-      panel.close()
+    if (_panel!.isOpen()) {
+      _panel!.close()
     } else {
       try {
-        const transcript = adapter.extractTranscript()
+        const transcript = accumulatedTranscript() || adapter.extractTranscript()
         const tokens = estimateTokens(transcript)
         const contextLoadPct = clamp(tokens / 100_000, 0, 1) * 100
         const platformUsagePct = adapter.getPlatformUsagePct()
-        panel.open({ estimatedTokens: tokens, contextLoadPct, platformUsagePct })
+        _panel!.open({ estimatedTokens: tokens, contextLoadPct, platformUsagePct })
       } catch {
-        panel.open({ estimatedTokens: 0, contextLoadPct: 0, platformUsagePct: null })
+        _panel!.open({ estimatedTokens: 0, contextLoadPct: 0, platformUsagePct: null })
       }
     }
   })
 
   document.addEventListener('click', () => {
-    if (panel.isOpen()) panel.close()
+    if (_panel?.isOpen()) _panel.close()
   })
 
-  function update(): void {
-    try {
-      const transcript = adapter.extractTranscript()
-      const innerPct = clamp(estimateTokens(transcript) / 100_000, 0, 1)
+  // Seed accumulator with currently-visible DOM messages on load
+  adapter.extractVisibleMessages().forEach((m) => seenMessages.set(m.id, m.text))
+  updateBadge(accumulatedTranscript())
 
-      innerFill.style.strokeDasharray  = `${INNER_CIRC}`
-      innerFill.style.strokeDashoffset = `${INNER_CIRC * (1 - innerPct)}`
-
-      const usagePct = adapter.getPlatformUsagePct()
-      if (usagePct === null) {
-        outerTrack.style.display = 'none'
-        outerFill.style.display  = 'none'
-      } else {
-        outerTrack.style.display = ''
-        outerFill.style.display  = ''
-        const outerPct = clamp(usagePct / 100, 0, 1)
-        outerFill.style.strokeDasharray  = `${OUTER_CIRC}`
-        outerFill.style.strokeDashoffset = `${OUTER_CIRC * (1 - outerPct)}`
-      }
-    } catch {
-      // AC9: silent — inner ring stays at last value (0% on first call)
-    }
-  }
-
-  update()
-
+  // MutationObserver fallback: accumulate new messages as they appear in DOM
   let timer: number | null = null
   const observer = new MutationObserver(() => {
     if (timer !== null) window.clearTimeout(timer)
-    timer = window.setTimeout(update, 300)
+    timer = window.setTimeout(() => {
+      adapter.extractVisibleMessages().forEach((m) => seenMessages.set(m.id, m.text))
+      updateBadge(accumulatedTranscript())
+    }, 300)
   })
   observer.observe(document.body, { childList: true, subtree: true })
 }
