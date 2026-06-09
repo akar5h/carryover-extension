@@ -1,0 +1,14 @@
+Scanning dir .
+Starting filesystem walk for root: /
+Scanned /Users/akarshgajbhiye/carryover-extension/package-lock.json file and found 228 packages
+End status: 200 dirs visited, 578 inodes visited, 1 Extract calls, 29.52175ms elapsed, 29.522ms wall time
+
+Total 2 packages affected by 2 known vulnerabilities (0 Critical, 0 High, 2 Medium, 0 Low, 0 Unknown) from 1 ecosystem.
+2 vulnerabilities can be fixed.
+
++-------------------------------------+------+-----------+---------------+---------+---------------+-------------------+
+| OSV URL                             | CVSS | ECOSYSTEM | PACKAGE       | VERSION | FIXED VERSION | SOURCE            |
++-------------------------------------+------+-----------+---------------+---------+---------------+-------------------+
+| https://osv.dev/GHSA-67mh-4wv8-2f99 | 5.3  | npm       | esbuild (dev) | 0.21.5  | 0.25.0        | package-lock.json |
+| https://osv.dev/GHSA-4w7w-66w2-5vf9 | 6.3  | npm       | vite (dev)    | 5.4.21  | 6.4.2         | package-lock.json |
++-------------------------------------+------+-----------+---------------+---------+---------------+-------------------+
