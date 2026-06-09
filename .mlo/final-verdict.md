@@ -13,7 +13,8 @@ APPROVE
 All deterministic gates passed. 35/35 tests pass (4 new composition tests). Build clean. 0 secrets, 0 semgrep findings, 0 High/Critical OSV vulnerabilities. Two pre-existing Medium dev-dep vulns (esbuild, vite) not introduced by this PR. Anti-slop reviewer: PASS. Security reviewer: PASS_WITH_WARNINGS — three minor INFO warnings, all V1 accepted trade-offs.
 
 **Branch:** `feat/p3-4-chatgpt-composition`
-**Commit:** `bba294c`
+**Commits:** `bba294c`, `0771e13`
+**PR:** https://github.com/akar5h/carryover-extension/pull/11
 **Issue:** [XER-164](/XER/issues/XER-164)
 
 ## Deterministic gate status

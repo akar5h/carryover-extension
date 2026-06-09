@@ -4,8 +4,8 @@
 
 **Branch:** `feat/p3-4-chatgpt-composition`
 **Issue:** XER-164
-**Commit:** bba294c
-**Files changed:** 2 (+113 / -1)
+**Commits:** bba294c, 0771e13
+**Files changed:** 3 (+119 / -6)
 
 ## Files changed
 
@@ -13,6 +13,7 @@
 |---|---|---|---|
 | `src/adapters/chatgpt-adapter.ts` | modified | Add `insertTextIntoComposer` + `openNewChatWithText` | low |
 | `src/adapters/__tests__/chatgpt-adapter.test.ts` | modified | Add chrome global stub + 4 composition tests | low |
+| `src/content/index.ts` | modified | Extend `checkPendingInsert` to chatgpt.com (AC4) | low |
 
 ## Behavior changed
 
