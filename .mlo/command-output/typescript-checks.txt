@@ -1,37 +1,4 @@
-TC_EXIT:0
 
-> carryover-extension@0.2.0 build
-> vite build
+> carryover-extension@0.2.0 typecheck
+> tsc --noEmit
 
-[crx:content-scripts] Some content-scripts don't support HMR because the world is MAIN:
-  /src/content/chatgpt-interceptor.ts
-vite v5.4.21 building for production...
-transforming...
-✓ 15 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/src/icons/icon16.png                        0.08 kB
-dist/src/icons/icon32.png                        0.10 kB
-dist/src/icons/icon48.png                        0.12 kB
-dist/src/icons/icon128.png                       0.31 kB
-dist/src/popup/popup.html                        0.64 kB │ gzip: 0.39 kB
-dist/manifest.json                               1.59 kB │ gzip: 0.50 kB
-dist/assets/chatgpt-interceptor.ts-DRdNyrdn.js   0.69 kB │ gzip: 0.40 kB
-dist/assets/popup.html-B5Qt9EMX.js               0.71 kB │ gzip: 0.40 kB
-dist/assets/index.ts-NQsXuaPr.js                15.62 kB │ gzip: 5.24 kB
-✓ built in 148ms
-BUILD_EXIT:0
-
-> carryover-extension@0.2.0 test
-> vitest run
-
-
- RUN  v4.1.8 /Users/akarshgajbhiye/carryover-extension
-
-
- Test Files  3 passed (3)
-      Tests  19 passed (19)
-   Start at  16:45:13
-   Duration  2.22s (transform 574ms, setup 0ms, import 799ms, tests 68ms, environment 4.53s)
-
-TEST_EXIT:0

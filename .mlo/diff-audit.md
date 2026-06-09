@@ -1,38 +1,52 @@
-# Diff Audit — XER-161
+# Diff Audit — XER-162
 
-## Summary
+## Change summary
 
-Two new files added under `src/compression/`: the prompt-builder module and its unit tests. No existing files modified. Adds `buildCompressionPrompt` (takes `NormalizedTranscript`, returns string prompt) and `estimateCompressedTokens` (token range estimator).
+Enable "Compress & Carry Over" button in badge panel; add pre-compression stats rows.
 
 ## Files changed
 
-| File | Change type | Reason | Risk |
-|---|---|---|---|
-| `src/compression/prompt-builder.ts` | added | XER-161 P3-1 spec: compression prompt builder | low |
-| `src/compression/__tests__/prompt-builder.test.ts` | added | Unit tests for AC1–6 | low |
+| File | Lines +/- | Risk |
+|---|---|---|
+| `src/content/badge/badge-panel.ts` | +42 -4 | LOW |
+| `src/content/badge/badge-updater.ts` | +2 -1 | LOW |
+| `src/content/badge/badge.ts` | +4 -1 | LOW |
+| `package.json` | +1 -1 | LOW |
+| `package-lock.json` | +390 -76 | LOW (dep upgrade) |
+
+## Diff risk: LOW
+
+## What changed
+
+### `badge-panel.ts`
+- Imports `estimateCompressedTokens` from `../../compression/prompt-builder` (XER-161)
+- Adds `messageCount: number` to `PanelStats` interface
+- Adds "If compressed:" and "Est. reduction:" rows between existing stats and button
+- Adds `divider3` between new stats rows and button
+- Removes `btn.title = 'Coming in next update'`
+- `open()` computes `estimateCompressedTokens(estimatedTokens)` and updates rows
+- Button enabled/disabled and styled inline based on `stats.messageCount > 0`
+- `reductionPct` uses low-end estimate (conservative, per spec)
+- Division-by-zero guarded: only computes if `estimatedTokens > 0`
+
+### `badge-updater.ts`
+- Reads `transcript.messages.length` into `messageCount`
+- Passes `messageCount` to `panel.open()`
+
+### `badge.ts`
+- Adds CSS `transition` to `.co-btn-compress` base style
+- Adds `.co-btn-compress:not([disabled]):hover` rule for hover feedback
+
+### `package.json` + `package-lock.json`
+- `overrides.rollup`: `^2.80.0` → `^4.20.0`
+- Rationale: vite 5 requires rollup 4; prior override caused ERR_PACKAGE_PATH_NOT_EXPORTED (missing `./parseAst`). GHSA-mw96-cpmx-2vgc is fixed in 2.80.0+ AND 4.x — security requirement maintained.
 
 ## Behavior changed
 
-- User-facing behavior: none — library module, not wired into UI yet
-- API behavior: none — new module export only
-- DB/schema behavior: none
-- Background job behavior: none
-- Config/env behavior: none
-- Auth/security behavior: none
-- Frontend behavior: none
-
-## Blast radius
-
-- Modules touched: `src/compression/` (new directory)
-- External services touched: none
-- Data models touched: none — reads `NormalizedTranscript`, no mutation
-- Auth/payment/user-data touched: none
-- Build/deploy config touched: none
-
-## Suspicious areas
-
-None. Clean additive change. No deleted validation, no broad refactor.
+- Badge panel: adds 2 new stat rows and a divider
+- Badge panel: button enabled when messageCount > 0
+- Build: now works with rollup 4.61.1
 
 ## Human inspection required
 
-None required. Change is isolated to a new module with no integration points yet.
+None. No auth, payment, DB, config, or user-data changes.

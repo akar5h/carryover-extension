@@ -1,0 +1,22 @@
+
+> carryover-extension@0.2.0 build
+> vite build
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[crx:content-scripts] Some content-scripts don't support HMR because the world is MAIN:
+  /src/content/chatgpt-interceptor.ts
+vite v5.4.21 building for production...
+transforming...
+✓ 16 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/src/icons/icon16.png                        0.08 kB
+dist/src/icons/icon32.png                        0.10 kB
+dist/src/icons/icon48.png                        0.12 kB
+dist/src/icons/icon128.png                       0.31 kB
+dist/src/popup/popup.html                        0.64 kB │ gzip: 0.39 kB
+dist/manifest.json                               1.59 kB │ gzip: 0.50 kB
+dist/assets/chatgpt-interceptor.ts-DRdNyrdn.js   0.69 kB │ gzip: 0.40 kB
+dist/assets/popup.html-B5Qt9EMX.js               0.71 kB │ gzip: 0.40 kB
+dist/assets/index.ts-Cv8kjloA.js                16.76 kB │ gzip: 5.54 kB
+✓ built in 153ms
