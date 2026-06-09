@@ -2,15 +2,15 @@
 
 ## Status
 
-APPROVE_FOR_PUSH
+REVIEW_REQUIRED
 
 ## Merge/push recommendation
 
-APPROVE
+MANUAL_REVIEW_REQUIRED
 
 ## Summary
 
-XER-153 badge panel implementation is clean, minimal, and spec-compliant. All deterministic gates pass: typecheck 0 errors, build clean, gitleaks 0 leaks, semgrep 0 findings. 2 Medium OSV findings are pre-existing dev-tool vulnerabilities (esbuild/vite), not runtime extension code. `createElement`-only DOM construction with no `innerHTML`. Stats fetched fresh from adapter on every panel open. Platform usage row correctly hidden on ChatGPT.
+XER-160 internal-API adapter redesign passes all deterministic gates (typecheck 0 errors, build clean, gitleaks 0 leaks, semgrep 0 findings, OSV 2 pre-existing Medium dev-only vulns). All new code is spec-compliant and correctness-correct. REVIEW_REQUIRED because: (1) `credentials: 'include'` fetch calls warrant a human confirming the hostname guards are tight, (2) org selection field names (`active_flags`, `capabilities`) were not verified against a live API response, and (3) old DOM adapter files are now orphaned dead code.
 
 ## Deterministic gate status
 
@@ -20,8 +20,8 @@ PASS
 
 | Reviewer | Verdict |
 |---|---|
-| Diff Auditor | PASS |
-| Anti-Slop Reviewer | PASS |
+| Diff Auditor | REVIEW_REQUIRED |
+| Anti-Slop Reviewer | PASS_WITH_WARNINGS |
 | Security & Edge Case Reviewer | PASS_WITH_WARNINGS |
 
 ## Blocking issues
@@ -32,13 +32,16 @@ None.
 
 | File | Reason |
 |---|---|
-| — | No human review required — no auth, data, config, or payment surface |
+| src/adapters/claude-adapter.ts | `credentials: 'include'` — confirm only fires on claude.ai; verify org selection field names from live DevTools |
+| src/adapters/chatgpt-adapter.ts | `credentials: 'include'` — confirm only fires on chatgpt.com / chat.openai.com |
+| src/content/badge/badge-updater.ts | Inner ring denominator changed 100_000 → 200_000 — confirm this is the intended context-window assumption |
 
 ## Missing evidence
 
-- No automated tests (browser extension DOM tests require a harness like `vitest-chrome` or Playwright). No test infra exists in this repo. Spec does not require tests for this phase.
-- OSV Medium vulns (esbuild, vite) are pre-existing; no exception log yet exists. No new dependencies introduced.
+- No integration tests for API fetch paths (requires browser automation to intercept real claude.ai/chatgpt.com responses)
+- Claude API response shape (`chat_messages[].text`, `current_leaf_message_uuid`, `parent_message_uuid`) not confirmed from live DevTools — assumed from spec description; actual shape may vary
+- ChatGPT API response shape (`mapping`, `current_node`) assumed correct from spec; actual shape may add/remove fields
 
 ## Confidence
 
-HIGH
+MEDIUM

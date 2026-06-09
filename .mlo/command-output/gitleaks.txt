@@ -1,9 +1,2 @@
-
-    ○
-    │╲
-    │ ○
-    ○ ░
-    ░    gitleaks
-
-[90m12:02AM[0m [32mINF[0m [1mscanned ~45321 bytes (45.32 KB) in 46.8ms[0m
-[90m12:02AM[0m [32mINF[0m [1mno leaks found[0m
+=== gitleaks ===
+exit: 0
