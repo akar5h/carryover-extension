@@ -1,16 +1,16 @@
-# Final Verification Verdict
+# Final Verification Verdict — XER-161
 
 ## Status
 
-REVIEW_REQUIRED
+APPROVE_FOR_PUSH
 
 ## Merge/push recommendation
 
-MANUAL_REVIEW_REQUIRED
+APPROVE
 
 ## Summary
 
-XER-160 full internal-API transcript extraction redesign. All deterministic gates pass: typecheck 0 errors, build clean (15 modules), 19/19 unit tests pass, gitleaks 0 leaks, semgrep 0 findings, osv-scanner 0 Critical/High (2 pre-existing Medium devDep vulns). Board has live-tested and verified both Claude and ChatGPT. REVIEW_REQUIRED because window.fetch patching in MAIN world and credentials:include warrant a human sign-off, and ChatGPT SPA navigation has a known gap (intercept may not fire on in-app navigation).
+XER-161 P3-1 Compression Prompt Builder. Two new files (`src/compression/prompt-builder.ts` + tests). All deterministic gates pass: typecheck 0 errors, build clean, 27/27 tests pass (8 new), gitleaks 0 leaks, semgrep 0 findings, osv-scanner 0 Critical/High (2 pre-existing Medium devDep vulns from XER-160). Pure string-transformation module with no security surface, no I/O, no auth. Clean additive change.
 
 ## Deterministic gate status
 
@@ -20,9 +20,9 @@ PASS
 
 | Reviewer | Verdict |
 |---|---|
-| Diff Auditor | REVIEW_REQUIRED |
-| Anti-Slop Reviewer | PASS_WITH_WARNINGS |
-| Security & Edge Case Reviewer | PASS_WITH_WARNINGS |
+| Diff Auditor | PASS |
+| Anti-Slop Reviewer | PASS |
+| Security & Edge Case Reviewer | PASS |
 
 ## Blocking issues
 
@@ -30,18 +30,12 @@ None.
 
 ## Human must inspect
 
-| File | Reason |
-|---|---|
-| src/content/chatgpt-interceptor.ts | window.fetch patch — URL regex must cover all ChatGPT conversation URL patterns |
-| manifest.json | MAIN world `world: "MAIN"` + `run_at: "document_start"` — confirm no chrome.* calls in interceptor |
-| src/adapters/claude-adapter.ts | credentials:include — confirm hostname guard is airtight |
+None.
 
 ## Missing evidence
 
-- ChatGPT SPA navigation not tested: intercept may not fire when navigating between conversations within chatgpt.com (ChatGPT may use cached React state and not re-call the API). Badge may show 0 for subsequent conversations without a page reload.
-- Claude API response shapes verified by board (live test confirmed working).
-- ChatGPT API response shapes confirmed by interception working (board verified).
+None. All acceptance criteria (AC1–6) verified by unit tests.
 
 ## Confidence
 
-HIGH (live-tested by board on both platforms; all gates pass; two logic bugs found and fixed by unit tests)
+HIGH
