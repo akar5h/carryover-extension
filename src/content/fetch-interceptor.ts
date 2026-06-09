@@ -1,14 +1,21 @@
 // Runs in MAIN world at document_start — patches window.fetch before page code runs.
 // Intercepts conversation fetch calls and dispatches carryover:messages to isolated world.
 
+console.log('[CarryOver] fetch-interceptor v2: MAIN world init')
+
 const _origFetch = window.fetch.bind(window)
 
 window.fetch = async function (...args: Parameters<typeof fetch>): Promise<Response> {
   const res = await _origFetch(...args)
   const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url
 
-  const isChatGPTConv = /\/backend-api\/conversation\/[a-z0-9-]+$/.test(url)
+  // Remove $-anchor so query strings don't break the match
+  const isChatGPTConv = /\/backend-api\/conversation\/[a-z0-9-]+/.test(url)
   const isClaudeConv = /\/api\/organizations\/[^/]+\/chat_conversations\/[^/?]+/.test(url)
+
+  if (isChatGPTConv || isClaudeConv) {
+    console.log('[CarryOver] fetch-interceptor: matched', url.split('?')[0])
+  }
 
   if (isChatGPTConv || isClaudeConv) {
     res

@@ -10,6 +10,8 @@ function clamp(val: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, val))
 }
 
+console.log('[CarryOver] badge-updater v2: accumulator init')
+
 // Accumulator: grows only — never shrinks on scroll/DOM changes.
 // Written by MutationObserver (DOM fallback) and carryover:messages listener (fetch intercept).
 export const seenMessages = new Map<string, string>()
@@ -89,7 +91,11 @@ export function startBadgeUpdater(adapter: PlatformAdapter): void {
   const observer = new MutationObserver(() => {
     if (timer !== null) window.clearTimeout(timer)
     timer = window.setTimeout(() => {
+      const before = seenMessages.size
       adapter.extractVisibleMessages().forEach((m) => seenMessages.set(m.id, m.text))
+      if (seenMessages.size !== before) {
+        console.log('[CarryOver] accumulator grew:', before, '->', seenMessages.size)
+      }
       updateBadge(accumulatedTranscript())
     }, 300)
   })
