@@ -10,7 +10,7 @@ MANUAL_REVIEW_REQUIRED
 
 ## Summary
 
-XER-160 internal-API adapter redesign passes all deterministic gates (typecheck 0 errors, build clean, gitleaks 0 leaks, semgrep 0 findings, OSV 2 pre-existing Medium dev-only vulns). All new code is spec-compliant and correctness-correct. REVIEW_REQUIRED because: (1) `credentials: 'include'` fetch calls warrant a human confirming the hostname guards are tight, (2) org selection field names (`active_flags`, `capabilities`) were not verified against a live API response, and (3) old DOM adapter files are now orphaned dead code.
+XER-160 internal-API adapter redesign: all deterministic gates pass including 19 unit tests. Two real bugs were found and fixed by tests (ChatGPT leaf detection, Claude parentId null→undefined). REVIEW_REQUIRED because live browser testing against actual API responses is still missing — API shapes are assumed from spec description and prior knowledge, not confirmed from DevTools. All inspection items are low-risk. No auto-blocking conditions.
 
 ## Deterministic gate status
 
@@ -32,16 +32,16 @@ None.
 
 | File | Reason |
 |---|---|
-| src/adapters/claude-adapter.ts | `credentials: 'include'` — confirm only fires on claude.ai; verify org selection field names from live DevTools |
-| src/adapters/chatgpt-adapter.ts | `credentials: 'include'` — confirm only fires on chatgpt.com / chat.openai.com |
-| src/content/badge/badge-updater.ts | Inner ring denominator changed 100_000 → 200_000 — confirm this is the intended context-window assumption |
+| src/adapters/claude-adapter.ts | Verify Claude API response shape from DevTools: confirm `chat_messages`, `sender`, `text`, `parent_message_uuid`, `current_leaf_message_uuid` field names before pushing |
+| src/adapters/chatgpt-adapter.ts | Verify ChatGPT API response shape from DevTools: confirm `mapping`, `current_node`, node `parent`/`children`/`message.author.role`/`content.parts` |
+| src/adapters/claude-adapter.ts | Org selection field names (`active_flags`, `capabilities`) — not live-verified; fallback to `orgList[0]` is safe |
+| src/content/badge/badge-updater.ts | Inner ring denominator changed 100k → 200k — confirm intended |
 
 ## Missing evidence
 
-- No integration tests for API fetch paths (requires browser automation to intercept real claude.ai/chatgpt.com responses)
-- Claude API response shape (`chat_messages[].text`, `current_leaf_message_uuid`, `parent_message_uuid`) not confirmed from live DevTools — assumed from spec description; actual shape may vary
-- ChatGPT API response shape (`mapping`, `current_node`) assumed correct from spec; actual shape may add/remove fields
+- No live browser test (requires Chrome with logged-in claude.ai/chatgpt.com session)
+- Claude and ChatGPT API shapes assumed from spec + prior knowledge; may have field name differences
 
 ## Confidence
 
-MEDIUM
+MEDIUM-HIGH (logic verified by unit tests; only API shape unconfirmed)

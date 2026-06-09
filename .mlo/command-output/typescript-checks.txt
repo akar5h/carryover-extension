@@ -17,6 +17,21 @@ dist/src/icons/icon128.png           0.31 kB
 dist/src/popup/popup.html            0.64 kB │ gzip: 0.39 kB
 dist/manifest.json                   1.20 kB │ gzip: 0.44 kB
 dist/assets/popup.html-B5Qt9EMX.js   0.71 kB │ gzip: 0.40 kB
-dist/assets/index.ts-BizUsoQg.js    15.13 kB │ gzip: 5.04 kB
-✓ built in 169ms
+dist/assets/index.ts-B_TaSNEy.js    15.19 kB │ gzip: 5.06 kB
+✓ built in 185ms
 build exit: 0
+=== Tests ===
+
+> carryover-extension@0.2.0 test
+> vitest run
+
+
+ RUN  v4.1.8 /Users/akarshgajbhiye/carryover-extension
+
+
+ Test Files  3 passed (3)
+      Tests  19 passed (19)
+   Start at  15:11:32
+   Duration  1.21s (transform 701ms, setup 0ms, import 906ms, tests 82ms, environment 10ms)
+
+test exit: 0
