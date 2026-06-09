@@ -23,12 +23,14 @@ if (adapter && adapter.isSupportedPage()) {
 }
 
 // Handle text carryover into a freshly opened tab (set by openNewChatWithText).
-// Runs on any claude.ai page; safe because key is cleared after first successful insert.
+// Runs on claude.ai and chatgpt.com; key is cleared after first successful insert.
 if (location.hostname === 'claude.ai') {
-  void checkPendingInsert()
+  void checkPendingInsert(new ClaudeAdapter())
+} else if (location.hostname === 'chatgpt.com' || location.hostname === 'chat.openai.com') {
+  void checkPendingInsert(new ChatGPTAdapter())
 }
 
-async function checkPendingInsert(): Promise<void> {
+async function checkPendingInsert(platformAdapter: PlatformAdapter): Promise<void> {
   let stored: Record<string, unknown>
   try {
     stored = await chrome.storage.session.get(PENDING_INSERT_KEY)
@@ -39,12 +41,11 @@ async function checkPendingInsert(): Promise<void> {
   const text = stored[PENDING_INSERT_KEY]
   if (typeof text !== 'string' || !text) return
 
-  const claudeAdapter = new ClaudeAdapter()
   const deadline = Date.now() + PENDING_INSERT_TIMEOUT_MS
 
   while (Date.now() < deadline) {
     try {
-      await claudeAdapter.insertTextIntoComposer(text)
+      await platformAdapter.insertTextIntoComposer!(text)
       await chrome.storage.session.remove(PENDING_INSERT_KEY)
       return
     } catch {
