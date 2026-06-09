@@ -3,9 +3,24 @@ import { createBadge, INNER_CIRC, OUTER_CIRC } from './badge'
 import { createBadgePanel } from './badge-panel'
 import type { SpaNavigator } from '../spa-navigator'
 
+// Chars-per-token industry estimate: OpenAI / Anthropic both use ~4 chars = 1 token
+// for typical English prose. Accurate to ±10-15%; underestimates code.
 function estimateTokens(transcript: NormalizedTranscript): number {
   const chars = transcript.messages.reduce((sum, m) => sum + m.text.length, 0)
   return Math.ceil(chars / 4)
+}
+
+// Context window by platform. ChatGPT default model (GPT-4o / o1) is 128k;
+// Claude is 200k. Using platform default so the ring reflects actual model capacity.
+// If we can detect the active model from the transcript metadata in the future,
+// we can be more precise here.
+const CONTEXT_WINDOW: Record<string, number> = {
+  claude: 200_000,
+  chatgpt: 128_000,
+}
+
+function contextWindow(transcript: NormalizedTranscript): number {
+  return CONTEXT_WINDOW[transcript.platform] ?? 128_000
 }
 
 function clamp(val: number, lo: number, hi: number): number {
@@ -42,7 +57,7 @@ export function startBadgeUpdater(adapter: PlatformAdapter, navigator: SpaNaviga
     if (!cachedTranscript) return
 
     const tokens = estimateTokens(cachedTranscript)
-    const innerPct = clamp(tokens / 200_000, 0, 1)
+    const innerPct = clamp(tokens / contextWindow(cachedTranscript), 0, 1)
 
     innerFill.style.strokeDasharray  = `${INNER_CIRC}`
     innerFill.style.strokeDashoffset = `${INNER_CIRC * (1 - innerPct)}`
@@ -88,7 +103,7 @@ export function startBadgeUpdater(adapter: PlatformAdapter, navigator: SpaNaviga
     }
 
     const tokens = transcript ? estimateTokens(transcript) : 0
-    const contextLoadPct = clamp(tokens / 200_000, 0, 1) * 100
+    const contextLoadPct = transcript ? clamp(tokens / contextWindow(transcript), 0, 1) * 100 : 0
     const usage = await adapter.getUsageInfo()
     const platformUsagePct = usage.available ? (usage.percentUsed ?? null) : null
 
