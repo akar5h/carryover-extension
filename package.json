@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "overrides": {
-    "rollup": "^2.80.0"
+    "rollup": "^4.20.0"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.4.0",

@@ -107,7 +107,8 @@ export function startBadgeUpdater(adapter: PlatformAdapter, navigator: SpaNaviga
     const usage = await adapter.getUsageInfo()
     const platformUsagePct = usage.available ? (usage.percentUsed ?? null) : null
 
-    panel.open({ estimatedTokens: tokens, contextLoadPct, platformUsagePct })
+    const messageCount = transcript ? transcript.messages.length : 0
+    panel.open({ estimatedTokens: tokens, contextLoadPct, platformUsagePct, messageCount })
   })
 
   document.addEventListener('click', () => {

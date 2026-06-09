@@ -57,7 +57,10 @@ export function createBadge(): BadgeRefs {
       '  width: 100%; margin-top: 8px; padding: 6px 0;',
       '  background: #2a2a2a; color: #666; border: 1px solid #3a3a3a;',
       '  border-radius: 4px; font-size: 12px; cursor: not-allowed;',
-      '  opacity: 0.6;',
+      '  opacity: 0.6; transition: background 0.15s, color 0.15s, opacity 0.15s;',
+      '}',
+      '.co-btn-compress:not([disabled]):hover {',
+      '  background: #3a3a3a;',
       '}',
     ].join('\n')
     document.head.appendChild(style)

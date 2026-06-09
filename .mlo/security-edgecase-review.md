@@ -1,4 +1,4 @@
-# Security & Edge Case Review — XER-161
+# Security & Edge Case Review — XER-162
 
 ## Verdict
 
@@ -6,33 +6,38 @@ PASS
 
 ## Security findings
 
-| Severity | File | Finding | Risk | Required fix |
-|---|---|---|---|---|
-| — | — | None | — | — |
+None.
 
-Notes:
-- No auth, no network I/O, no DB, no file I/O — pure string transformation
-- Template uses `String.replace('{messages}', ...)` — not a template engine; no injection surface
-- No secrets, no PII handling, no external API calls introduced
-- Message text inserted verbatim into prompt — intentional (compression preserves content); output consumed by an LLM, not a browser/shell
+## Security review
 
-## Edge-case findings
+| Check | Result |
+|---|---|
+| XSS | PASS — all DOM writes use `.textContent`, never `.innerHTML` |
+| User input | N/A — no new user input paths |
+| External API | No change |
+| Auth / payment / PII | No change |
+| CORS / rate limiting | No change |
+| Config / env vars | No change |
+| Secrets in diff | None |
 
-| Severity | File | Edge case | Failure mode | Required fix |
-|---|---|---|---|---|
-| info | `prompt-builder.ts` | `text` field is empty string | `User: ` (empty label) — no crash | none — acceptable per spec |
-| info | `prompt-builder.ts` | very large transcript (100k+ tokens) | string join succeeds; LLM context limits enforced upstream | none — out of scope |
+## Edge cases
 
-Both edge cases are benign. Empty-message case (AC5) explicitly handled and tested.
+| Case | Handling |
+|---|---|
+| `estimatedTokens = 0` | `reductionPct` guard prevents division-by-zero; shows `~0%` |
+| `messageCount = 0` | Button disabled; compression stats render showing 0 reduction |
+| `transcript = null` on badge click | `messageCount` defaults to 0; button stays disabled |
+| Large token counts | `toLocaleString()` handles correctly |
+| Platform not Claude | Outer ring path unchanged; `platformUsagePct` logic unchanged |
+
+## Dependency security note
+
+Rollup override bumped `^2.80.0` → `^4.20.0`. GHSA-mw96-cpmx-2vgc (prototype pollution) fixed in 2.80.0+, 3.29.5+, and 4.x. Change maintains security guarantee while restoring build compatibility.
 
 ## Human review required
 
-None. No auth/payment/user-data/config/schema changes.
+None.
 
 ## Auto-blocking issues
 
 None.
-
-## Suggested tests
-
-All spec-required cases (AC1–6) covered. No gaps.
