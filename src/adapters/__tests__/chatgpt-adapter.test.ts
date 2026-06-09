@@ -1,10 +1,20 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ChatGPTAdapter } from '../chatgpt-adapter'
 
 vi.stubGlobal('location', {
   hostname: 'chatgpt.com',
   pathname: '/c/abc123',
   href: 'https://chatgpt.com/c/abc123',
+})
+
+vi.stubGlobal('chrome', {
+  storage: {
+    session: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+      remove: vi.fn().mockResolvedValue(undefined),
+    },
+  },
 })
 
 function makeNode(
@@ -190,5 +200,70 @@ describe('ChatGPTAdapter.normalizeConversation', () => {
 
     const result = adapter.normalizeConversation(raw)
     expect(result.messages[0].text).toBe('Part 1\nPart 2')
+  })
+})
+
+describe('ChatGPTAdapter composition methods', () => {
+  let adapter: ChatGPTAdapter
+
+  beforeEach(() => {
+    adapter = new ChatGPTAdapter()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('insertTextIntoComposer', () => {
+    it('sets value and dispatches input event on #prompt-textarea', async () => {
+      const textarea = { tagName: 'TEXTAREA', focus: vi.fn(), dispatchEvent: vi.fn(), value: '' }
+      vi.spyOn(document, 'querySelector').mockReturnValue(textarea as unknown as HTMLElement)
+
+      await adapter.insertTextIntoComposer('hello chatgpt')
+
+      expect(textarea.focus).toHaveBeenCalled()
+      expect((textarea as { value: string }).value).toBe('hello chatgpt')
+      expect(textarea.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'input', bubbles: true }),
+      )
+    })
+
+    it('calls execCommand on contenteditable composer', async () => {
+      const el = { tagName: 'DIV', focus: vi.fn(), dispatchEvent: vi.fn() }
+      vi.spyOn(document, 'querySelector').mockReturnValue(el as unknown as HTMLElement)
+      const execMock = vi.fn().mockReturnValue(true)
+      Object.defineProperty(document, 'execCommand', {
+        value: execMock,
+        writable: true,
+        configurable: true,
+      })
+
+      await adapter.insertTextIntoComposer('hello world')
+
+      expect(el.focus).toHaveBeenCalled()
+      expect(execMock).toHaveBeenCalledWith('insertText', false, 'hello world')
+    })
+
+    it('throws AdapterError with code FETCH_FAILED when no composer found', async () => {
+      vi.spyOn(document, 'querySelector').mockReturnValue(null)
+
+      await expect(adapter.insertTextIntoComposer('text')).rejects.toMatchObject({
+        code: 'FETCH_FAILED',
+        recoverable: true,
+      })
+    })
+  })
+
+  describe('openNewChatWithText', () => {
+    it('stores text in session storage and opens chatgpt.com', async () => {
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+      await adapter.openNewChatWithText('my prompt')
+
+      expect(chrome.storage.session.set).toHaveBeenCalledWith({
+        'carryover:pending_insert': 'my prompt',
+      })
+      expect(openSpy).toHaveBeenCalledWith('https://chatgpt.com/', '_blank')
+    })
   })
 })

@@ -249,4 +249,41 @@ export class ChatGPTAdapter implements PlatformAdapter {
   async getUsageInfo(): Promise<PlatformUsage> {
     return { available: false, source: 'unavailable', label: 'Usage unavailable' }
   }
+
+  async insertTextIntoComposer(text: string): Promise<void> {
+    // ChatGPT uses a React-controlled element — try textarea first, then contenteditable.
+    const selectors = [
+      '#prompt-textarea',
+      'textarea[data-id="prompt-textarea"]',
+      'div[contenteditable="true"][data-testid*="composer"]',
+      'div[contenteditable="true"]',
+      'textarea',
+    ]
+
+    let el: HTMLElement | null = null
+    for (const sel of selectors) {
+      el = document.querySelector<HTMLElement>(sel)
+      if (el) break
+    }
+
+    if (!el) {
+      makeError('FETCH_FAILED', 'Composer element not found on ChatGPT page')
+    }
+
+    el.focus()
+
+    if (el.tagName === 'TEXTAREA') {
+      (el as HTMLTextAreaElement).value = text
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    } else {
+      // contenteditable — execCommand triggers React's synthetic event system
+      document.execCommand('insertText', false, text)
+    }
+  }
+
+  async openNewChatWithText(text: string): Promise<void> {
+    await chrome.storage.session.set({ 'carryover:pending_insert': text })
+    // Opening chatgpt.com root creates a new chat session
+    window.open('https://chatgpt.com/', '_blank')
+  }
 }
