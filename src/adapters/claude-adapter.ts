@@ -265,4 +265,40 @@ export class ClaudeAdapter implements PlatformAdapter {
       return { available: false, source: 'unavailable', label: 'Usage unavailable' }
     }
   }
+
+  async insertTextIntoComposer(text: string): Promise<void> {
+    // Claude uses a React-controlled contenteditable div (not a plain textarea).
+    // Priority: scoped selectors first to avoid matching code-block editables.
+    const selectors = [
+      'fieldset div[contenteditable="true"]',
+      'div[contenteditable="true"][aria-label]',
+      'div[contenteditable="true"]',
+      'textarea',
+    ]
+
+    let el: HTMLElement | null = null
+    for (const sel of selectors) {
+      el = document.querySelector<HTMLElement>(sel)
+      if (el) break
+    }
+
+    if (!el) {
+      makeError('FETCH_FAILED', 'Composer element not found on page')
+    }
+
+    el.focus()
+
+    if (el.tagName === 'TEXTAREA') {
+      (el as HTMLTextAreaElement).value = text
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    } else {
+      // contenteditable — execCommand triggers React's synthetic event system
+      document.execCommand('insertText', false, text)
+    }
+  }
+
+  async openNewChatWithText(text: string): Promise<void> {
+    await chrome.storage.session.set({ 'carryover:pending_insert': text })
+    window.open('https://claude.ai/new', '_blank')
+  }
 }

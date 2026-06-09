@@ -1,7 +1,7 @@
 Scanning dir .
 Starting filesystem walk for root: /
 Scanned /Users/akarshgajbhiye/carryover-extension/package-lock.json file and found 228 packages
-End status: 190 dirs visited, 534 inodes visited, 1 Extract calls, 32.928875ms elapsed, 32.928ms wall time
+End status: 200 dirs visited, 578 inodes visited, 1 Extract calls, 29.52175ms elapsed, 29.522ms wall time
 
 Total 2 packages affected by 2 known vulnerabilities (0 Critical, 0 High, 2 Medium, 0 Low, 0 Unknown) from 1 ecosystem.
 2 vulnerabilities can be fixed.
