@@ -1,9 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ClaudeAdapter } from '../claude-adapter'
 
 // Stub browser globals not present in Node
 vi.stubGlobal('location', { hostname: 'claude.ai', pathname: '/chat/aaaa-bbbb', href: 'https://claude.ai/chat/aaaa-bbbb' })
-vi.stubGlobal('chrome', { storage: { session: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) } } })
+vi.stubGlobal('chrome', {
+  storage: {
+    session: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+      remove: vi.fn().mockResolvedValue(undefined),
+    },
+  },
+})
 
 describe('ClaudeAdapter.normalizeConversation', () => {
   let adapter: ClaudeAdapter
@@ -136,5 +144,72 @@ describe('ClaudeAdapter.normalizeConversation', () => {
     expect(result.messages[0].childrenIds).toEqual(['msg-2'])
     expect(result.messages[1].parentId).toBe('msg-1')
     expect(result.messages[1].childrenIds).toEqual([])
+  })
+})
+
+describe('ClaudeAdapter composition methods', () => {
+  let adapter: ClaudeAdapter
+
+  beforeEach(() => {
+    adapter = new ClaudeAdapter()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('insertTextIntoComposer', () => {
+    it('focuses element and calls execCommand on contenteditable div', async () => {
+      const el = { tagName: 'DIV', focus: vi.fn(), dispatchEvent: vi.fn() }
+      vi.spyOn(document, 'querySelector').mockReturnValue(el as unknown as HTMLElement)
+      const execMock = vi.fn().mockReturnValue(true)
+      Object.defineProperty(document, 'execCommand', {
+        value: execMock,
+        writable: true,
+        configurable: true,
+      })
+
+      await adapter.insertTextIntoComposer('hello world')
+
+      expect(el.focus).toHaveBeenCalled()
+      expect(execMock).toHaveBeenCalledWith('insertText', false, 'hello world')
+    })
+
+    it('sets value and dispatches input event on textarea fallback', async () => {
+      const textarea = { tagName: 'TEXTAREA', focus: vi.fn(), dispatchEvent: vi.fn(), value: '' }
+      vi.spyOn(document, 'querySelector').mockImplementation((sel) => {
+        if (sel === 'textarea') return textarea as unknown as HTMLElement
+        return null
+      })
+
+      await adapter.insertTextIntoComposer('hello')
+
+      expect((textarea as { value: string }).value).toBe('hello')
+      expect(textarea.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'input', bubbles: true }),
+      )
+    })
+
+    it('throws AdapterError with code FETCH_FAILED when no composer found', async () => {
+      vi.spyOn(document, 'querySelector').mockReturnValue(null)
+
+      await expect(adapter.insertTextIntoComposer('text')).rejects.toMatchObject({
+        code: 'FETCH_FAILED',
+        recoverable: true,
+      })
+    })
+  })
+
+  describe('openNewChatWithText', () => {
+    it('stores text in session storage and opens new tab', async () => {
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+      await adapter.openNewChatWithText('my text')
+
+      expect(chrome.storage.session.set).toHaveBeenCalledWith({
+        'carryover:pending_insert': 'my text',
+      })
+      expect(openSpy).toHaveBeenCalledWith('https://claude.ai/new', '_blank')
+    })
   })
 })
