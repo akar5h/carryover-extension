@@ -4,8 +4,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     pool: 'threads',
-    poolOptions: {
-      threads: { maxThreads: 2 },
-    },
+    maxWorkers: 2,
   },
 })
