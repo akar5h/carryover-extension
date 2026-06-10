@@ -67,10 +67,11 @@ describe('onContinueFreshClick', () => {
     expect(prompt).toContain(checkpoint)
   })
 
-  it('shows success message after openNewChatWithText resolves', async () => {
+  it('calls resetToIdle after openNewChatWithText resolves', async () => {
     await onContinueFreshClick(adapter, 'valid checkpoint', panel)
 
-    expect(panel.showMessage).toHaveBeenCalledWith('New chat opened — press Enter to start.')
+    expect(panel.resetToIdle).toHaveBeenCalledOnce()
+    expect(panel.showMessage).not.toHaveBeenCalled()
   })
 
   it('shows error message when openNewChatWithText throws', async () => {

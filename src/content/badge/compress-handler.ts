@@ -20,9 +20,7 @@ export async function onCompressClick(
     const prompt = buildCompressionPrompt(transcript)
     await adapter.openNewChatWithText!(prompt)
     panel.setCompressState('idle')
-    panel.showMessage(
-      'Press Enter in the new tab to compress. Then copy the response and click Continue Fresh.',
-    )
+    panel.showPostCompressState()
   } catch (err) {
     panel.setCompressState('idle')
     const msg = err instanceof Error ? err.message : 'Unknown error'

@@ -15,7 +15,7 @@ export async function onContinueFreshClick(
   try {
     const bootstrapPrompt = buildBootstrapPrompt(checkpoint)
     await adapter.openNewChatWithText!(bootstrapPrompt)
-    panel.showMessage('New chat opened — press Enter to start.')
+    panel.resetToIdle()
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     panel.showMessage(`Error: ${msg}`)

@@ -94,12 +94,11 @@ describe('onCompressClick', () => {
     expect(order).toEqual(['loading', 'open', 'idle'])
   })
 
-  it('shows success instruction message after openNewChatWithText resolves', async () => {
+  it('transitions to post-compress state after openNewChatWithText resolves', async () => {
     await onCompressClick(adapter, makeTranscript(), panel)
 
-    expect(panel.showMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Press Enter in the new tab'),
-    )
+    expect(panel.showPostCompressState).toHaveBeenCalledOnce()
+    expect(panel.showMessage).not.toHaveBeenCalled()
   })
 
   it('shows error message and resets state when openNewChatWithText throws', async () => {
