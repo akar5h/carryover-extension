@@ -41,6 +41,10 @@ function makePanel(): BadgePanel {
     clearMessage: vi.fn(),
     setCompressState: vi.fn(),
     onCompress: vi.fn(),
+    showPostCompressState: vi.fn(),
+    getCheckpointText: vi.fn().mockReturnValue(''),
+    onContinueFresh: vi.fn(),
+    resetToIdle: vi.fn(),
   }
 }
 
