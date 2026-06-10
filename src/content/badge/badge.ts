@@ -62,6 +62,16 @@ export function createBadge(): BadgeRefs {
       '.co-btn-compress:not([disabled]):hover {',
       '  background: #3a3a3a;',
       '}',
+      '.co-post-compress {',
+      '  margin-top: 8px;',
+      '}',
+      '.co-checkpoint-textarea {',
+      '  width: 100%; box-sizing: border-box;',
+      '  background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;',
+      '  border-radius: 4px; font-size: 12px; padding: 4px 6px;',
+      '  resize: vertical; min-height: 60px;',
+      '  font-family: system-ui, sans-serif;',
+      '}',
     ].join('\n')
     document.head.appendChild(style)
   }

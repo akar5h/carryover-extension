@@ -16,6 +16,10 @@ export interface BadgePanel {
   clearMessage(): void
   setCompressState(state: 'idle' | 'loading'): void
   onCompress(handler: () => Promise<void>): void
+  showPostCompressState(): void
+  getCheckpointText(): string
+  onContinueFresh(handler: () => Promise<void>): void
+  resetToIdle(): void
 }
 
 export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
@@ -94,6 +98,50 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   msgEl.className = 'co-panel-msg'
   msgEl.style.display = 'none'
 
+  // Post-compress section
+  const postCompressSection = document.createElement('div')
+  postCompressSection.className = 'co-post-compress'
+  postCompressSection.style.display = 'none'
+
+  const checkpointTextarea = document.createElement('textarea')
+  checkpointTextarea.className = 'co-checkpoint-textarea'
+  checkpointTextarea.placeholder = 'Paste checkpoint here…'
+
+  const btnCopy = document.createElement('button')
+  btnCopy.className = 'co-btn-compress'
+  btnCopy.textContent = 'Copy Checkpoint'
+  btnCopy.style.cursor = 'pointer'
+  btnCopy.style.opacity = '1'
+  btnCopy.style.color = '#e0e0e0'
+
+  const btnContinue = document.createElement('button')
+  btnContinue.className = 'co-btn-compress'
+  btnContinue.textContent = 'Continue Fresh'
+  btnContinue.disabled = true
+  btnContinue.style.cursor = 'not-allowed'
+  btnContinue.style.opacity = '0.6'
+  btnContinue.style.color = '#666'
+
+  checkpointTextarea.addEventListener('input', () => {
+    const hasText = checkpointTextarea.value.length > 0
+    btnContinue.disabled = !hasText
+    btnContinue.style.cursor = hasText ? 'pointer' : 'not-allowed'
+    btnContinue.style.opacity = hasText ? '1' : '0.6'
+    btnContinue.style.color = hasText ? '#e0e0e0' : '#666'
+  })
+
+  btnCopy.addEventListener('click', () => {
+    void navigator.clipboard.writeText(checkpointTextarea.value).then(() => {
+      const orig = btnCopy.textContent
+      btnCopy.textContent = 'Copied!'
+      setTimeout(() => { btnCopy.textContent = orig }, 1500)
+    })
+  })
+
+  postCompressSection.appendChild(checkpointTextarea)
+  postCompressSection.appendChild(btnCopy)
+  postCompressSection.appendChild(btnContinue)
+
   panel.appendChild(header)
   panel.appendChild(divider1)
   panel.appendChild(rowTokens)
@@ -105,11 +153,17 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   panel.appendChild(divider3)
   panel.appendChild(btn)
   panel.appendChild(msgEl)
+  panel.appendChild(postCompressSection)
 
   let compressHandler: (() => Promise<void>) | null = null
+  let continueFreshHandler: (() => Promise<void>) | null = null
 
   btn.addEventListener('click', () => {
     if (compressHandler) void compressHandler()
+  })
+
+  btnContinue.addEventListener('click', () => {
+    if (continueFreshHandler) void continueFreshHandler()
   })
 
   return {
@@ -164,6 +218,26 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     },
     onCompress(handler: () => Promise<void>): void {
       compressHandler = handler
+    },
+    showPostCompressState(): void {
+      btn.style.display = 'none'
+      checkpointTextarea.value = ''
+      btnContinue.disabled = true
+      btnContinue.style.cursor = 'not-allowed'
+      btnContinue.style.opacity = '0.6'
+      btnContinue.style.color = '#666'
+      postCompressSection.style.display = ''
+    },
+    getCheckpointText(): string {
+      return checkpointTextarea.value
+    },
+    onContinueFresh(handler: () => Promise<void>): void {
+      continueFreshHandler = handler
+    },
+    resetToIdle(): void {
+      postCompressSection.style.display = 'none'
+      checkpointTextarea.value = ''
+      btn.style.display = ''
     },
   }
 }
