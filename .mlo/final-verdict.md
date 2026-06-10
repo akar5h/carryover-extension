@@ -10,7 +10,10 @@ APPROVE
 
 ## Summary
 
-`buildBootstrapPrompt` is a minimal, well-tested, additive change. All deterministic gates pass. No security findings. No slop. Tests are alongside the implementation and cover all acceptance criteria. Pre-existing issues (2 medium OSV vulns in dev deps, 2 test-file worker timeouts) are not introduced by this change.
+XER-189 badge-panel post-compress state is minimal, correctly implemented, and fully tested.
+All deterministic gates pass. No security findings. No slop. Typecheck fix (compress-handler mock)
+required an extra commit but is clean. 8/8 badge tests pass. 35/35 full suite passes.
+Pre-existing issues (2 medium OSV dev-dep vulns, vitest pool cleanup timeout) not introduced here.
 
 ## Deterministic gate status
 
@@ -36,7 +39,7 @@ None.
 
 ## Missing evidence
 
-None. Build, typecheck, tests, gitleaks, semgrep, osv-scanner all run and recorded.
+None. Build, typecheck, tests (badge scope + full suite), gitleaks, semgrep, osv-scanner all run.
 
 ## Confidence
 

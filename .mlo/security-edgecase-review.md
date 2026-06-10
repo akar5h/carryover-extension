@@ -10,14 +10,14 @@ PASS
 |---|---|---|---|---|
 | — | — | None | — | — |
 
-No auth, injection, data, config, or dependency issues introduced. Function is a pure string builder with no I/O.
+`navigator.clipboard.writeText()` called with textarea value — standard browser API, user-initiated click only. No injection surface; value is written to clipboard, not injected into DOM or external services.
 
 ## Edge-case findings
 
 | Severity | File | Edge case | Failure mode | Required fix |
 |---|---|---|---|---|
-| info | prompt-builder.ts | Checkpoint containing `{checkpoint}` literal | String.replace replaces only first occurrence; checkpoint body itself won't be double-replaced | None — single replacement is correct behavior |
-| info | prompt-builder.ts | Very large checkpoint | No truncation; entire string embedded | Expected — caller (Continue Fresh handler) is responsible for size constraints |
+| info | badge-panel.ts | Clipboard API unavailable (non-HTTPS / old browser) | `navigator.clipboard.writeText()` rejects; `.then()` never fires | Acceptable — silent failure; button doesn't flash "Copied!" but no crash |
+| info | badge-panel.ts | `btnCopy.textContent` is null when timeout fires | `orig` captured before async, so `orig` could be "Copied!" if clicked twice rapidly | Cosmetically harmless; no data loss |
 
 ## Human review required
 
@@ -29,6 +29,5 @@ None.
 
 ## Suggested tests
 
-All required cases covered. Optional additions:
-- Checkpoint containing `{checkpoint}` literal to confirm no double-replace
-- Checkpoint with special characters (unicode, null bytes)
+All acceptance-criteria cases covered. Optional:
+- Clipboard API rejection path (requires mocking `navigator.clipboard.writeText` to reject)

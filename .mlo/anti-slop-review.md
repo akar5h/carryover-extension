@@ -6,7 +6,9 @@ PASS
 
 ## Summary
 
-Change is minimal and precise. One template constant, one exported function (4 lines), one fallback for empty input. Tests are direct and meaningful. No unnecessary abstractions.
+Change is additive and minimal. DOM elements follow the existing factory pattern. Button
+state management (disabled/cursor/opacity/color) is consistent with the compress button's
+own pattern. No speculative abstraction, no unnecessary wrapper functions, no fake fallbacks.
 
 ## Slop findings
 
@@ -16,19 +18,20 @@ Change is minimal and precise. One template constant, one exported function (4 l
 
 ## Bloat check
 
-- unnecessary abstraction: none — `BOOTSTRAP_TEMPLATE` constant is the same pattern as existing `COMPRESSION_TEMPLATE`
-- fake fallback: none — empty checkpoint falls back to `[No checkpoint provided]` which is visible to the user, not a silent swallow
+- unnecessary abstraction: none — DOM creation is inline, consistent with rest of file
+- fake fallback: none — disabled state for Continue Fresh is real UX requirement, not defensive noise
 - broad try/catch: none
-- duplicate logic: none — template-replace pattern matches existing style in same file
+- duplicate logic: minimal — button enabled/disabled style updates repeated for initial state and on-input; acceptable, no shared helper needed for 4 lines
 - dead code: none
 - unrelated refactor: none
-- speculative extensibility: none — function has exactly the signature required by the spec
+- speculative extensibility: none — exactly 4 methods specified by the acceptance criteria
 
 ## Success path clarity
 
 YES
 
-`buildBootstrapPrompt(checkpoint)` → replaces `{checkpoint}` in template with input (or sentinel if empty) → returns string. One path, no branches except the empty-input guard.
+`showPostCompressState()` → hides compress btn, resets textarea, resets Continue Fresh to disabled, shows section.
+`resetToIdle()` → hides post-compress section, clears textarea, shows compress btn. Clear inverse.
 
 ## Required cleanup
 
