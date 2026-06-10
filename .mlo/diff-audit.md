@@ -1,49 +1,41 @@
 # Diff Audit
 
-## Change summary
+## Summary
 
-**Branch:** `feat/p3-5-compress-wire`
-**Issue:** XER-165
-**Commits:** 52783be
-**Files changed:** 4 (+199 / -0)
+XER-200: Adds `src/background.ts` (11 lines) — new MV3 service worker that calls `chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })` on `onInstalled` and `onStartup`. Updates `manifest.json` to register it. Fixes `Access to storage is not allowed from this context` thrown by content scripts.
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/content/badge/badge-panel.ts` | modified | Extend `BadgePanel` interface + impl: `showMessage`, `clearMessage`, `setCompressState`, `onCompress`; add `msgEl` DOM node and `btn` click listener | low |
-| `src/content/badge/compress-handler.ts` | added | New module: `onCompressClick` — testable pipeline handler (fetch → build prompt → open tab) | low |
-| `src/content/badge/badge-updater.ts` | modified | Import compress-handler; wire `panel.onCompress(() => onCompressClick(...))` | low |
-| `src/content/badge/__tests__/compress-handler.test.ts` | added | 8 unit tests covering success, error, no-convId, loading state sequencing | low |
+| `src/background.ts` | added | New service worker — grants content-script access to session storage per Chrome docs | low |
+| `manifest.json` | modified | Registers `src/background.ts` as MV3 background service worker | low |
 
 ## Behavior changed
 
-- **User-facing behavior:** Clicking "Compress & Carry Over" now runs the full pipeline (was: button existed but had no handler bound). Button shows "Opening…" while async work runs; shows instruction message on success; shows error message on failure.
-- **API behavior:** None — no API contracts changed.
-- **DB/schema behavior:** None.
-- **Background job behavior:** None.
-- **Config/env behavior:** None.
-- **Auth/security behavior:** None — tab open uses pre-existing `openNewChatWithText` (chrome.storage.session + window.open, implemented in XER-163/164).
-- **Frontend behavior:** Badge panel gains a `co-panel-msg` div (hidden by default) and reactive button text.
+- User-facing behavior: content scripts no longer throw storage-context error when calling `chrome.storage.session`
+- API behavior: none
+- DB/schema behavior: none
+- Background job behavior: new MV3 service worker registered; two event listeners call `setAccessLevel` — no data processing, no retries
+- Config/env behavior: manifest gains `"background"` key with `service_worker` + `type: module`
+- Auth/security behavior: Chrome session storage becomes readable/writable by content scripts (untrusted contexts) — intentional per fix spec
+- Frontend behavior: none
 
 ## Blast radius
 
-- **Modules touched:** badge-panel, badge-updater, compress-handler (new)
-- **External services touched:** None — `openNewChatWithText` already implemented in prior phases
-- **Data models touched:** None
-- **Auth/payment/user-data touched:** None
-- **Build/deploy config touched:** None
+- Modules touched: `manifest.json`, `src/background.ts` (new)
+- External services touched: none
+- Data models touched: none
+- Auth/payment/user-data touched: no
+- Build/deploy config touched: manifest change affects extension packaging; crxjs picks it up automatically
 
 ## Suspicious areas
 
-None:
-- No unrelated files changed
-- Diff strictly additive (199 lines, 0 deletions)
-- No validation deleted
-- No tests deleted — 8 new tests added
-- Error handling is intentional: catch block covers async pipeline, surfaces user-friendly message
-- No env changes, no auth changes, no permissions changes
+None. Change is minimal, directly prescribed by Chrome docs, and matches the spec exactly.
 
 ## Human inspection required
 
-None — no auth, payment, user-data, schema, or CORS changes.
+| File | Reason |
+|---|---|
+| `src/background.ts` | New execution context — new service worker in the extension |
+| `manifest.json` | Background registration changes extension capability surface |

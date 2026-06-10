@@ -1,27 +1,27 @@
 # Security & Edge Case Review
 
-## Verdict: PASS_WITH_WARNINGS
+## Verdict
+
+PASS_WITH_WARNINGS
 
 ## Security findings
 
 | Severity | File | Finding | Risk | Required fix |
 |---|---|---|---|---|
-| INFO | `compress-handler.ts` | `adapter.openNewChatWithText!` — non-null assertion | Both adapters define this method. If a future adapter omits it, the `!` causes a runtime crash. Not a security issue — no user-controlled input reaches this path unsanitized. | None (V1 accepted) |
-| INFO | `compress-handler.ts` | Compression prompt contains full conversation text from `buildCompressionPrompt` | Text goes to the platform's own composer via `chrome.storage.session`. No third-party service; no PII exfiltration beyond what the platform already has. | None |
+| info | `src/background.ts` | Session storage accessible to untrusted contexts (content scripts) | Low — intentional; content scripts are same-origin within the extension; session storage is scoped to the extension | none — this is the fix |
+
+**Context:** `TRUSTED_AND_UNTRUSTED_CONTEXTS` is a Chrome API setting, not a security regression. Content scripts on claude.ai/chatgpt.com are already trusted by the extension's host_permissions. Session storage stays scoped to the extension; other origins cannot read it.
 
 ## Edge-case findings
 
 | Severity | File | Edge case | Failure mode | Required fix |
 |---|---|---|---|---|
-| WARNING | `compress-handler.ts` | `openNewChatWithText` called but popup blocked by browser | `window.open` returns null silently; user sees "Press Enter..." instruction but no tab opened | Acceptable V1 — pre-existing behaviour from XER-163/164 |
-| WARNING | `compress-handler.ts` | Very large transcript | `buildCompressionPrompt` joins all messages; no truncation. Could produce a very long prompt (e.g. 200k token conversation). Inserted into composer which may have a character limit. | Platform composer handles gracefully via truncation or scroll; V1 accepted |
-| INFO | `compress-handler.ts` | Double-click on compress button | `compressHandler` is not guarded against concurrent calls. Button is disabled on `setCompressState('loading')` so double-fire is visually impossible. | None — state machine prevents it |
-| INFO | `compress-handler.ts` | `fetchConversation` throws a non-Error (string, object) | Caught; `'Unknown error'` shown to user. Correct fallback. | None |
-| INFO | `badge-panel.ts` | `setCompressState('idle')` re-enables button regardless of `messageCount` | On load-then-error, button returns enabled even if original stats had messageCount=0. Benign because no messages → pipeline would show "no conversation found" anyway. | None |
+| info | `src/background.ts` | Service worker not yet started when content script fires on first load | Content script may call `chrome.storage.session` before `onInstalled` fires the first time — mitigated by existing `try/catch` in `content/index.ts` | none — content script already handles this gracefully |
+| info | `src/background.ts` | `setAccessLevel` called on every startup, not just once | Benign — idempotent Chrome API; no side effects | none |
 
 ## Human review required
 
-None — no auth, payment, user-data, DB schema, CORS, or rate-limiting changes.
+None — no auth, payment, user data, schema, or CORS changes.
 
 ## Auto-blocking issues
 
@@ -29,4 +29,4 @@ None.
 
 ## Suggested tests
 
-- (Optional) Test the case where `adapter.openNewChatWithText` is undefined — verifies runtime behavior when an adapter omits it.
+No new unit tests needed for a Chrome API configuration call. Smoke test in browser is the right verification (listed in XER-200 acceptance criteria).

@@ -1,32 +1,34 @@
 # Anti-Slop Review
 
-## Verdict: PASS
+## Verdict
+
+PASS
 
 ## Summary
 
-Change is minimal and spec-exact. `compress-handler.ts` is 31 lines. `badge-panel.ts` additions are purely additive DOM wiring. No unnecessary abstractions, no fake robustness, no ornamental patterns.
+XER-200 adds 11 lines of service worker code. Two event listeners, two identical one-liner calls. No abstraction, no ceremony, no bloat. Exactly what the Chrome docs require and what the spec prescribes.
 
 ## Slop findings
 
 | Severity | File | Finding | Why it matters | Required fix |
 |---|---|---|---|---|
-| (none) | — | — | — | — |
+| — | — | None | — | — |
 
 ## Bloat check
 
-- unnecessary abstraction: None — `compress-handler.ts` extracted to be testable; justified
-- fake fallback: None — `err instanceof Error ? err.message : 'Unknown error'` is a real narrow fallback (non-Error throws are rare but JS allows them)
-- broad try/catch: None — catch wraps exactly the async pipeline; no silent swallowing
-- duplicate logic: None
-- dead code: None — all branches reachable
-- unrelated refactor: None
-- speculative extensibility: None — `BadgePanel` additions are all consumed immediately
+- unnecessary abstraction: none
+- fake fallback: none — no try/catch added (setAccessLevel is fire-and-forget in service workers)
+- broad try/catch: none
+- duplicate logic: `setAccessLevel` called in both listeners — intentional, not duplication; each listener fires in a different lifecycle phase
+- dead code: none
+- unrelated refactor: none
+- speculative extensibility: none — exactly what the spec requires
 
 ## Success path clarity
 
 YES
 
-`onCompressClick`: get convId → set loading → fetch or use cache → build prompt → open tab → set idle → show message. One linear success path with one catch branch.
+Service worker fires on install/startup → `setAccessLevel` → content scripts can access `chrome.storage.session`. Single, clear path.
 
 ## Required cleanup
 
@@ -34,4 +36,4 @@ None.
 
 ## Non-blocking suggestions
 
-- `adapter.openNewChatWithText!` uses non-null assertion. Both platform adapters define this method. The `!` is correct given the usage context but a runtime guard (`if (!adapter.openNewChatWithText) throw ...`) could be added if the adapter list ever expands. Not required now.
+None.
