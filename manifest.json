@@ -3,7 +3,7 @@
   "name": "CarryOver",
   "version": "0.2.0",
   "description": "Compress long AI conversations into compact checkpoints.",
-  "permissions": ["activeTab", "scripting", "clipboardWrite"],
+  "permissions": ["activeTab", "scripting", "clipboardWrite", "storage"],
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://claude.ai/*"
