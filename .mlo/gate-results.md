@@ -8,12 +8,12 @@ PASS
 
 | Gate | Status | Command | Notes |
 |---|---|---|---|
-| gitleaks | ✅ PASS | `gitleaks detect --source . --no-git` | No secrets detected (135.78 KB scanned) |
-| semgrep | ✅ PASS | `semgrep --config=p/default` on changed files | 0 findings, 210 rules on 2 files |
+| gitleaks | ✅ PASS | `gitleaks detect --source . --no-git` | No secrets detected (139.76 KB scanned) |
+| semgrep | ✅ PASS | `semgrep --config=p/default .` | 0 findings, 227 rules on 52 files |
 | osv-scanner | ✅ PASS (warnings) | `osv-scanner --recursive .` | 2 Medium dev-dep vulns — pre-existing, not introduced here |
 | tsc typecheck | ✅ PASS | `npx tsc --noEmit` | 0 errors |
 | npm test (full) | ✅ PASS | `npm test` | 6 files, 53 tests all pass |
-| npm run build | ✅ PASS | `npm run build` | 17 modules, dist generated cleanly in 1.15s |
+| npm run build | ✅ PASS | `npm run build` | 18 modules, dist/manifest.json includes "storage", built cleanly |
 
 ## Blocking failures
 
@@ -26,4 +26,4 @@ None.
 
 ## Raw logs
 
-See `.mlo/command-output/gitleaks.txt`, `.mlo/command-output/semgrep.txt`, `.mlo/command-output/osv.txt`, `.mlo/command-output/tests.txt`, `.mlo/command-output/build.txt`, `.mlo/command-output/tsc.txt`
+See `.mlo/command-output/gitleaks.txt`, `.mlo/command-output/semgrep.txt`, `.mlo/command-output/osv.txt`, `.mlo/command-output/tests.txt`, `.mlo/command-output/build.txt`, `.mlo/command-output/typescript-checks.txt`

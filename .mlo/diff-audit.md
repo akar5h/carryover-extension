@@ -2,40 +2,36 @@
 
 ## Summary
 
-XER-190: Added `continue-fresh-handler.ts` — the "Continue Fresh" flow handler for the
-CarryOver browser extension badge. Validates checkpoint, builds bootstrap prompt via
-existing `buildBootstrapPrompt`, opens new chat tab via `adapter.openNewChatWithText`.
-Also added 5 unit tests. No existing files modified.
+XER-194: Add `"storage"` to `manifest.json` permissions array. Fixes `chrome.storage undefined` crash on both Claude and ChatGPT. 1 insertion, 1 deletion, 1 file.
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/content/badge/continue-fresh-handler.ts` | added | Implements `onContinueFreshClick` per XER-190 spec | low |
-| `src/content/badge/__tests__/continue-fresh-handler.test.ts` | added | Unit tests: empty checkpoint guard, valid path, error handling | low |
+| `manifest.json` | modified | Add `"storage"` permission so Chrome exposes `chrome.storage.session` | low |
 
 ## Behavior changed
 
-- User-facing behavior: `onContinueFreshClick` now available — opens new chat tab with bootstrap prompt built from checkpoint text
-- API behavior: none
-- DB/schema behavior: none
-- Background job behavior: none
-- Config/env behavior: none
-- Auth/security behavior: none
-- Frontend behavior: extension badge gains a concrete handler for the Continue Fresh button wired in XER-189
+- **User-facing behavior:** Extension no longer crashes on load; `chrome.storage.session` calls in adapters and content scripts now work
+- **API behavior:** none
+- **DB/schema behavior:** none
+- **Background job behavior:** none
+- **Config/env behavior:** manifest permissions updated — Chrome will prompt user to re-accept on extension update
+- **Auth/security behavior:** `"storage"` grants `chrome.storage` access within the extension context only. No external data access.
+- **Frontend behavior:** crash eliminated on both Claude and ChatGPT
 
 ## Blast radius
 
-- Modules touched: `src/content/badge/` (new files only), read-only imports from `src/compression/prompt-builder` and `src/adapters/types`
-- External services touched: none (browser tab API via existing `adapter.openNewChatWithText`)
-- Data models touched: none
-- Auth/payment/user-data touched: none
-- Build/deploy config touched: none
+- **Modules touched:** `manifest.json` only
+- **External services touched:** none
+- **Data models touched:** none
+- **Auth/payment/user-data touched:** none
+- **Build/deploy config touched:** `dist/manifest.json` regenerated (1.59 kB → 1.61 kB)
 
 ## Suspicious areas
 
-None. Change is additive only — two new files, no existing code paths modified, no validation deleted.
+None. Single permission addition, no code changes.
 
 ## Human inspection required
 
-None required. Isolated new files, no auth/data/config impact.
+None required. Minimal change, well-understood Chrome API permission.
