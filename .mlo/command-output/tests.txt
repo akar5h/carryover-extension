@@ -1,0 +1,13 @@
+
+> carryover-extension@0.2.0 test
+> vitest run
+
+
+ RUN  v4.1.8 /Users/akarshgajbhiye/carryover-extension
+
+
+ Test Files  6 passed (6)
+      Tests  53 passed (53)
+   Start at  16:00:20
+   Duration  19.97s (transform 1.88s, setup 0ms, import 3.14s, tests 423ms, environment 31.73s)
+

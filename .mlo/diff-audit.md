@@ -2,42 +2,40 @@
 
 ## Summary
 
-XER-189: Added post-compress UI state to `BadgePanel`. Interface extended with 4 new
-methods (`showPostCompressState`, `getCheckpointText`, `onContinueFresh`, `resetToIdle`).
-DOM elements added: checkpoint textarea, Copy Checkpoint button (clipboard + 1.5s "Copied!"
-flash), Continue Fresh button (disabled until textarea non-empty). CSS added in `badge.ts`.
-Follow-up commit fixed compress-handler.test.ts mock to satisfy expanded interface (typecheck fix).
+XER-190: Added `continue-fresh-handler.ts` — the "Continue Fresh" flow handler for the
+CarryOver browser extension badge. Validates checkpoint, builds bootstrap prompt via
+existing `buildBootstrapPrompt`, opens new chat tab via `adapter.openNewChatWithText`.
+Also added 5 unit tests. No existing files modified.
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/content/badge/badge-panel.ts` | modified | Add post-compress UI: 4 interface methods + DOM elements + event wiring | low |
-| `src/content/badge/badge.ts` | modified | Add `.co-post-compress` and `.co-checkpoint-textarea` CSS rules | low |
-| `src/content/badge/__tests__/compress-handler.test.ts` | modified | Add 4 stub methods to `makePanel()` mock to satisfy expanded interface | low |
+| `src/content/badge/continue-fresh-handler.ts` | added | Implements `onContinueFreshClick` per XER-190 spec | low |
+| `src/content/badge/__tests__/continue-fresh-handler.test.ts` | added | Unit tests: empty checkpoint guard, valid path, error handling | low |
 
 ## Behavior changed
 
-- User-facing behavior: Panel hides compress button and reveals textarea + 2 action buttons post-compress
-- API behavior: `BadgePanel` interface gains 4 new methods
+- User-facing behavior: `onContinueFreshClick` now available — opens new chat tab with bootstrap prompt built from checkpoint text
+- API behavior: none
 - DB/schema behavior: none
 - Background job behavior: none
 - Config/env behavior: none
 - Auth/security behavior: none
-- Frontend behavior: `navigator.clipboard.writeText()` called on Copy Checkpoint click
+- Frontend behavior: extension badge gains a concrete handler for the Continue Fresh button wired in XER-189
 
 ## Blast radius
 
-- Modules touched: `badge-panel.ts`, `badge.ts`, compress-handler test mock
-- External services touched: `navigator.clipboard` (browser built-in)
-- Data models touched: `BadgePanel` TypeScript interface (additive only)
+- Modules touched: `src/content/badge/` (new files only), read-only imports from `src/compression/prompt-builder` and `src/adapters/types`
+- External services touched: none (browser tab API via existing `adapter.openNewChatWithText`)
+- Data models touched: none
 - Auth/payment/user-data touched: none
 - Build/deploy config touched: none
 
 ## Suspicious areas
 
-None. Change is purely additive. No existing code paths deleted or modified.
+None. Change is additive only — two new files, no existing code paths modified, no validation deleted.
 
 ## Human inspection required
 
-None required. Change is UI-only, additive, no auth/data/config impact.
+None required. Isolated new files, no auth/data/config impact.
