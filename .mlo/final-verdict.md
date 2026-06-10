@@ -10,11 +10,7 @@ APPROVE
 
 ## Summary
 
-All deterministic gates passed. 43/43 tests pass (8 new compress-handler tests). Build clean. 0 secrets detected. 0 semgrep findings. 0 High/Critical OSV vulnerabilities — two pre-existing Medium dev-dep vulns (esbuild, vite) not introduced by this change. Anti-slop reviewer: PASS. Security reviewer: PASS_WITH_WARNINGS — all INFO/WARNING items are V1 accepted trade-offs, none auto-blocking.
-
-**Branch:** `feat/p3-5-compress-wire`
-**Commit:** `52783be`
-**Issue:** [XER-165](/XER/issues/XER-165)
+XER-200: Adds `src/background.ts` (11 lines) + manifest `"background"` entry. All deterministic gates pass. No secrets, no semgrep findings, no Critical/High CVEs. Build clean (19 modules including new background bundle), 53/53 tests pass, tsc 0 errors. Security review: PASS_WITH_WARNINGS — the `TRUSTED_AND_UNTRUSTED_CONTEXTS` setting is intentional and scoped within the extension. Anti-slop: PASS — minimal, no bloat. 2 pre-existing Medium dev-dep OSV vulns not introduced by this change.
 
 ## Deterministic gate status
 
@@ -36,18 +32,11 @@ None.
 
 | File | Reason |
 |---|---|
-| (none) | No auth, payment, data, schema, or CORS changes |
-
-## Non-blocking warnings
-
-1. `adapter.openNewChatWithText!` uses non-null assertion — safe with current adapters; add guard if adapter list expands.
-2. Popup window blocked silently — `window.open` returns null with no user feedback. Pre-existing V1 trade-off.
-3. Very large transcripts are not truncated before insertion into composer — platform handles gracefully in practice.
-4. Dev deps esbuild/vite have Medium OSV vulns (pre-existing, not introduced here) — upgrade in a separate ticket.
+| — | — |
 
 ## Missing evidence
 
-None. All required gates ran and passed.
+Manual smoke test required (browser): open claude.ai, click CarryOver badge, confirm no storage error in DevTools. Cannot be automated in this gate.
 
 ## Confidence
 
