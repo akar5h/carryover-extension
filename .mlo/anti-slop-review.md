@@ -1,32 +1,34 @@
 # Anti-Slop Review
 
-## Verdict: PASS
+## Verdict
+
+PASS
 
 ## Summary
 
-Change is minimal and spec-exact. `compress-handler.ts` is 31 lines. `badge-panel.ts` additions are purely additive DOM wiring. No unnecessary abstractions, no fake robustness, no ornamental patterns.
+Change is minimal and precise. One template constant, one exported function (4 lines), one fallback for empty input. Tests are direct and meaningful. No unnecessary abstractions.
 
 ## Slop findings
 
 | Severity | File | Finding | Why it matters | Required fix |
 |---|---|---|---|---|
-| (none) | — | — | — | — |
+| — | — | None | — | — |
 
 ## Bloat check
 
-- unnecessary abstraction: None — `compress-handler.ts` extracted to be testable; justified
-- fake fallback: None — `err instanceof Error ? err.message : 'Unknown error'` is a real narrow fallback (non-Error throws are rare but JS allows them)
-- broad try/catch: None — catch wraps exactly the async pipeline; no silent swallowing
-- duplicate logic: None
-- dead code: None — all branches reachable
-- unrelated refactor: None
-- speculative extensibility: None — `BadgePanel` additions are all consumed immediately
+- unnecessary abstraction: none — `BOOTSTRAP_TEMPLATE` constant is the same pattern as existing `COMPRESSION_TEMPLATE`
+- fake fallback: none — empty checkpoint falls back to `[No checkpoint provided]` which is visible to the user, not a silent swallow
+- broad try/catch: none
+- duplicate logic: none — template-replace pattern matches existing style in same file
+- dead code: none
+- unrelated refactor: none
+- speculative extensibility: none — function has exactly the signature required by the spec
 
 ## Success path clarity
 
 YES
 
-`onCompressClick`: get convId → set loading → fetch or use cache → build prompt → open tab → set idle → show message. One linear success path with one catch branch.
+`buildBootstrapPrompt(checkpoint)` → replaces `{checkpoint}` in template with input (or sentinel if empty) → returns string. One path, no branches except the empty-input guard.
 
 ## Required cleanup
 
@@ -34,4 +36,4 @@ None.
 
 ## Non-blocking suggestions
 
-- `adapter.openNewChatWithText!` uses non-null assertion. Both platform adapters define this method. The `!` is correct given the usage context but a runtime guard (`if (!adapter.openNewChatWithText) throw ...`) could be added if the adapter list ever expands. Not required now.
+None.

@@ -37,6 +37,19 @@ export function buildCompressionPrompt(transcript: NormalizedTranscript): string
   return COMPRESSION_TEMPLATE.replace('{messages}', messages)
 }
 
+const BOOTSTRAP_TEMPLATE = `This is a continuation of a prior conversation. The checkpoint below is a compressed, machine-readable summary of that conversation's context. Read it carefully, reconstruct the prior context from it, and continue naturally from where things left off.
+
+--- CHECKPOINT START ---
+{checkpoint}
+--- CHECKPOINT END ---
+
+Continue naturally from the above checkpoint.`
+
+export function buildBootstrapPrompt(checkpoint: string): string {
+  const body = checkpoint.length > 0 ? checkpoint : '[No checkpoint provided]'
+  return BOOTSTRAP_TEMPLATE.replace('{checkpoint}', body)
+}
+
 export function estimateCompressedTokens(originalTokens: number): { low: number; high: number } {
   // Typical 10–15x compression for conversational text
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCompressionPrompt, estimateCompressedTokens } from '../prompt-builder'
+import { buildCompressionPrompt, buildBootstrapPrompt, estimateCompressedTokens } from '../prompt-builder'
 import type { NormalizedTranscript } from '../../adapters/types'
 
 const base: NormalizedTranscript = {
@@ -76,6 +76,40 @@ describe('buildCompressionPrompt', () => {
     }
     const prompt = buildCompressionPrompt(transcript)
     expect(prompt).toContain('[No messages]')
+  })
+})
+
+describe('buildBootstrapPrompt', () => {
+  it('contains checkpoint verbatim when non-empty', () => {
+    const checkpoint = '## Current Task\nBuild a Chrome extension.\n## Decisions Made\n1. Use TypeScript.'
+    const prompt = buildBootstrapPrompt(checkpoint)
+    expect(prompt).toContain(checkpoint)
+  })
+
+  it('prompt introduces checkpoint as compressed context from prior conversation', () => {
+    const prompt = buildBootstrapPrompt('some checkpoint')
+    expect(prompt.toLowerCase()).toContain('prior conversation')
+    expect(prompt.toLowerCase()).toContain('checkpoint')
+  })
+
+  it('embeds checkpoint between START/END markers', () => {
+    const checkpoint = 'test checkpoint data'
+    const prompt = buildBootstrapPrompt(checkpoint)
+    const start = prompt.indexOf('--- CHECKPOINT START ---')
+    const end = prompt.indexOf('--- CHECKPOINT END ---')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    expect(prompt.slice(start, end)).toContain(checkpoint)
+  })
+
+  it('handles empty checkpoint gracefully (no crash)', () => {
+    expect(() => buildBootstrapPrompt('')).not.toThrow()
+  })
+
+  it('empty checkpoint prompt still contains marker text', () => {
+    const prompt = buildBootstrapPrompt('')
+    expect(prompt).toContain('--- CHECKPOINT START ---')
+    expect(prompt).toContain('--- CHECKPOINT END ---')
   })
 })
 

@@ -1,49 +1,42 @@
 # Diff Audit
 
-## Change summary
+## Summary
 
-**Branch:** `feat/p3-5-compress-wire`
-**Issue:** XER-165
-**Commits:** 52783be
-**Files changed:** 4 (+199 / -0)
+Added `buildBootstrapPrompt(checkpoint: string): string` to `src/compression/prompt-builder.ts` with 5 unit tests. Fixed pre-existing vitest forks-pool timeout by switching to `pool: 'threads'` in `vitest.config.ts`.
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/content/badge/badge-panel.ts` | modified | Extend `BadgePanel` interface + impl: `showMessage`, `clearMessage`, `setCompressState`, `onCompress`; add `msgEl` DOM node and `btn` click listener | low |
-| `src/content/badge/compress-handler.ts` | added | New module: `onCompressClick` — testable pipeline handler (fetch → build prompt → open tab) | low |
-| `src/content/badge/badge-updater.ts` | modified | Import compress-handler; wire `panel.onCompress(() => onCompressClick(...))` | low |
-| `src/content/badge/__tests__/compress-handler.test.ts` | added | 8 unit tests covering success, error, no-convId, loading state sequencing | low |
+| src/compression/prompt-builder.ts | modified | Add `buildBootstrapPrompt` export (XER-188 requirement) | low |
+| src/compression/__tests__/prompt-builder.test.ts | modified | Add 5 unit tests for `buildBootstrapPrompt` | low |
+| vitest.config.ts | modified | Fix pre-existing forks-pool timeout: `pool: 'threads'` | low |
 
 ## Behavior changed
 
-- **User-facing behavior:** Clicking "Compress & Carry Over" now runs the full pipeline (was: button existed but had no handler bound). Button shows "Opening…" while async work runs; shows instruction message on success; shows error message on failure.
-- **API behavior:** None — no API contracts changed.
-- **DB/schema behavior:** None.
-- **Background job behavior:** None.
-- **Config/env behavior:** None.
-- **Auth/security behavior:** None — tab open uses pre-existing `openNewChatWithText` (chrome.storage.session + window.open, implemented in XER-163/164).
-- **Frontend behavior:** Badge panel gains a `co-panel-msg` div (hidden by default) and reactive button text.
+- User-facing behavior: none (library function, no UI)
+- API behavior: new export `buildBootstrapPrompt` added to compression module
+- DB/schema behavior: none
+- Background job behavior: none
+- Config/env behavior: vitest config changed to use threads pool (fixes pre-existing test infra issue)
+- Auth/security behavior: none
+- Frontend behavior: none
 
 ## Blast radius
 
-- **Modules touched:** badge-panel, badge-updater, compress-handler (new)
-- **External services touched:** None — `openNewChatWithText` already implemented in prior phases
-- **Data models touched:** None
-- **Auth/payment/user-data touched:** None
-- **Build/deploy config touched:** None
+- Modules touched: `src/compression/prompt-builder.ts` only
+- External services touched: none
+- Data models touched: none
+- Auth/payment/user-data touched: none
+- Build/deploy config touched: vitest.config.ts (test infra only)
 
 ## Suspicious areas
 
-None:
-- No unrelated files changed
-- Diff strictly additive (199 lines, 0 deletions)
-- No validation deleted
-- No tests deleted — 8 new tests added
-- Error handling is intentional: catch block covers async pipeline, surfaces user-friendly message
-- No env changes, no auth changes, no permissions changes
+None. Minimal targeted change:
+- Single new exported function, ~12 lines
+- Tests alongside implementation
+- vitest config fix is mechanical and pre-existing
 
 ## Human inspection required
 
-None — no auth, payment, user-data, schema, or CORS changes.
+None required. Change is additive only, no existing behavior modified.
