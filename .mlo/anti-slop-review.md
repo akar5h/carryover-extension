@@ -6,7 +6,7 @@ PASS
 
 ## Summary
 
-XER-194 diff is 1 insertion / 1 deletion in `manifest.json`. Adding one string to a JSON array. No code, no abstractions, no ceremony.
+XER-200 adds 11 lines of service worker code. Two event listeners, two identical one-liner calls. No abstraction, no ceremony, no bloat. Exactly what the Chrome docs require and what the spec prescribes.
 
 ## Slop findings
 
@@ -17,18 +17,18 @@ XER-194 diff is 1 insertion / 1 deletion in `manifest.json`. Adding one string t
 ## Bloat check
 
 - unnecessary abstraction: none
-- fake fallback: none
-- broad try/catch: none — JSON config, no code
-- duplicate logic: none
+- fake fallback: none — no try/catch added (setAccessLevel is fire-and-forget in service workers)
+- broad try/catch: none
+- duplicate logic: `setAccessLevel` called in both listeners — intentional, not duplication; each listener fires in a different lifecycle phase
 - dead code: none
 - unrelated refactor: none
-- speculative extensibility: none — exactly what XER-194 spec requires
+- speculative extensibility: none — exactly what the spec requires
 
 ## Success path clarity
 
 YES
 
-`"storage"` added to permissions array. Chrome exposes `chrome.storage`. Crash resolved.
+Service worker fires on install/startup → `setAccessLevel` → content scripts can access `chrome.storage.session`. Single, clear path.
 
 ## Required cleanup
 

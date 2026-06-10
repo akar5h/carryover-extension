@@ -10,7 +10,7 @@ APPROVE
 
 ## Summary
 
-XER-194: 1 insertion / 1 deletion in `manifest.json`. Adds `"storage"` to Chrome permissions — required for `chrome.storage.session` calls in adapters and content scripts. All gates pass: gitleaks clean, semgrep 0 findings, tsc 0 errors, 53/53 tests pass, build clean, `dist/manifest.json` verified to include "storage". 2 pre-existing Medium dev-dep OSV vulns not introduced by this change.
+XER-200: Adds `src/background.ts` (11 lines) + manifest `"background"` entry. All deterministic gates pass. No secrets, no semgrep findings, no Critical/High CVEs. Build clean (19 modules including new background bundle), 53/53 tests pass, tsc 0 errors. Security review: PASS_WITH_WARNINGS — the `TRUSTED_AND_UNTRUSTED_CONTEXTS` setting is intentional and scoped within the extension. Anti-slop: PASS — minimal, no bloat. 2 pre-existing Medium dev-dep OSV vulns not introduced by this change.
 
 ## Deterministic gate status
 
@@ -22,7 +22,7 @@ PASS
 |---|---|
 | Diff Auditor | PASS |
 | Anti-Slop Reviewer | PASS |
-| Security & Edge Case Reviewer | PASS |
+| Security & Edge Case Reviewer | PASS_WITH_WARNINGS |
 
 ## Blocking issues
 
@@ -36,7 +36,7 @@ None.
 
 ## Missing evidence
 
-None. Build, tsc, full test suite (53/53), gitleaks, semgrep, osv-scanner all run and passed.
+Manual smoke test required (browser): open claude.ai, click CarryOver badge, confirm no storage error in DevTools. Cannot be automated in this gate.
 
 ## Confidence
 
