@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarryOver — Privacy Policy</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 720px;
+      margin: 48px auto;
+      padding: 0 24px;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 4px; }
+    h2 { font-size: 1.15rem; margin-top: 32px; }
+    p, li { font-size: 0.95rem; }
+    ul { padding-left: 20px; }
+    a { color: #7c6af7; }
+    .updated { color: #666; font-size: 0.85rem; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>CarryOver — Privacy Policy</h1>
+  <p class="updated">Last updated: June 2026</p>
+
+  <p>
+    CarryOver is a Chrome browser extension that compresses AI conversation context into portable
+    checkpoints. This policy explains what data the extension accesses and what it does with it.
+  </p>
+
+  <h2>Data Accessed and Stored</h2>
+  <ul>
+    <li>
+      <strong>OpenAI API Key.</strong> If you enter an API key in the extension popup, it is stored
+      locally in your browser using <code>chrome.storage.local</code>. It is never transmitted to any
+      server controlled by the extension developer. The key is used only when you trigger compression
+      and the in-chat path is unavailable.
+    </li>
+    <li>
+      <strong>Conversation text.</strong> The extension reads visible conversation text from
+      <code>claude.ai</code> and <code>chatgpt.com</code> tabs you have open. This is used locally
+      to count tokens and build the compression prompt. The text is not sent to any server other than
+      the AI platform you are already using (Anthropic or OpenAI) through your own account.
+    </li>
+    <li>
+      <strong>Pending checkpoint.</strong> After compression, the checkpoint is held temporarily in
+      <code>chrome.storage.session</code> to auto-paste it into the new chat tab. This data is
+      cleared after insertion or when the browser session ends.
+    </li>
+  </ul>
+
+  <h2>Data Sharing</h2>
+  <p>
+    The extension does not collect, store on external servers, transmit, or share any personal data
+    with the extension developer or any third party. All processing occurs locally in your browser or
+    through your own AI platform account using your own API credentials.
+  </p>
+
+  <h2>Permissions Used</h2>
+  <ul>
+    <li><strong>activeTab</strong> — detect the active AI platform tab.</li>
+    <li><strong>scripting</strong> — inject the context ring and stats panel into supported pages.</li>
+    <li><strong>clipboardWrite</strong> — copy the compressed checkpoint to your clipboard.</li>
+    <li><strong>storage</strong> — persist your API key and pass the checkpoint between tabs.</li>
+    <li><strong>Host permissions (chatgpt.com, claude.ai)</strong> — required for content script injection.</li>
+    <li><strong>Host permissions (api.openai.com)</strong> — used by the optional background worker when calling OpenAI with your key.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>
+    For questions about this policy, contact:
+    <a href="mailto:akarshgajbhiye@gmail.com">akarshgajbhiye@gmail.com</a>
+  </p>
+</body>
+</html>
