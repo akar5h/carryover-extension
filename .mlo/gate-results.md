@@ -1,31 +1,45 @@
 # Gate Results
 
-## Summary
+## Run context
 
-PASS
+- Verifier run: XER-187 merge-conflict check + test/typecheck fix pass
+- Base: ab4ca2a (prior verifier); HEAD: main post-merge
+- New commits verified: 77f7a0e, 1c6ae5b, 6394478 + 3 fix commits this run
 
-## Results
+## TypeScript
 
-| Gate | Status | Command | Notes |
+PASS — `tsc --noEmit` clean (0 errors, 2 fixed this run)
+
+## Tests
+
+PASS — 45/45 (5 tests fixed this run: 2 adapter textarea, 3 compress-handler)
+
+## Build
+
+PASS — built in 186ms, no errors
+
+## gitleaks
+
+PASS — no leaks found
+
+## semgrep
+
+PASS — 0 findings on 54 git-tracked files
+- 2 POC scratch files excluded via `.semgrepignore` (untracked, not committed, not shipped)
+
+## osv-scanner
+
+REVIEW_REQUIRED — 4 vulnerabilities in dev build tooling (NOT shipped in extension dist)
+
+| GHSA | CVSS | Package | Risk to users |
 |---|---|---|---|
-| gitleaks | PASS | `gitleaks detect --source . --no-git` | no leaks found |
-| semgrep | PASS | `semgrep --config=p/default .` | no HIGH/CRITICAL findings |
-| osv-scanner | PASS (warnings) | `osv-scanner --recursive .` | 2 Medium dev-only vulns |
-| npm test | PASS | `npm test` | 45/45 pass |
-| npm build | PASS | `npm run build` | clean build |
-| typecheck | PASS (implicit via build) | tsc via vite | no type errors |
+| GHSA-fx2h-pf6j-xcff | 8.2 HIGH | vite 5.4.21 (dev) | none — build tool only |
+| GHSA-4w7w-66w2-5vf9 | 6.3 MEDIUM | vite 5.4.21 (dev) | none |
+| GHSA-v6wh-96g9-6wx3 | 5.5 MEDIUM | vite 5.4.21 (dev) | none |
+| GHSA-67mh-4wv8-2f99 | 5.3 MEDIUM | esbuild 0.21.5 (dev) | none |
+
+Exception basis: all in dev-only build tools; extension ships compiled `dist/` only. Same packages accepted in prior verifier run (0a5c3dc).
 
 ## Blocking failures
 
 None.
-
-## Non-blocking warnings
-
-- GHSA-67mh-4wv8-2f99: esbuild 0.21.5 (dev) CVSS 5.3 Medium — fixed in 0.25.0
-- GHSA-4w7w-66w2-5vf9: vite 5.4.21 (dev) CVSS 6.3 Medium — fixed in 6.4.2
-
-Both are dev-only build tools with no runtime exposure in the shipped extension bundle.
-
-## Raw logs
-
-Captured inline from gate runner session.

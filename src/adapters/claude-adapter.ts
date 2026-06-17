@@ -289,16 +289,19 @@ export class ClaudeAdapter implements PlatformAdapter {
     el.focus()
 
     if (el.tagName === 'TEXTAREA') {
+      // Use the native setter to trigger React's synthetic event system.
+      // Try/catch for jsdom compatibility in tests — fall back to direct assignment.
       const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-      if (nativeSetter) {
-        nativeSetter.call(el, text)
-      } else {
+      try {
+        if (nativeSetter) nativeSetter.call(el, text)
+        else (el as HTMLTextAreaElement).value = text
+      } catch {
         (el as HTMLTextAreaElement).value = text
       }
       el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }))
     } else {
       // contenteditable — execCommand triggers React's synthetic event system
-      document.execCommand('selectAll', false, null)
+      document.execCommand('selectAll', false, undefined)
       document.execCommand('insertText', false, text)
     }
   }

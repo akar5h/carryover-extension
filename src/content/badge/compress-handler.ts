@@ -81,7 +81,7 @@ export async function onCompressClick(
 
     // Auto carry-over: copy checkpoint to clipboard and open new chat immediately.
     // User should not need to click a second button — "Compress & Carry Over" does both.
-    void navigator.clipboard.writeText(result.checkpoint)
+    void navigator.clipboard?.writeText(result.checkpoint)
     if (adapter.openNewChatWithText) {
       void adapter.openNewChatWithText(buildBootstrapText(result.checkpoint))
     }
@@ -94,7 +94,7 @@ export async function onCompressClick(
         reductionPct: result.reductionPct,
       },
       () => {
-        void navigator.clipboard.writeText(result.checkpoint)
+        void navigator.clipboard?.writeText(result.checkpoint)
       },
     )
   } catch (err) {

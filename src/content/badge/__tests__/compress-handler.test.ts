@@ -129,11 +129,8 @@ describe('onCompressClick', () => {
     expect(writeText).toHaveBeenCalledWith('compressed result')
   })
 
-  it('onContinueFresh callback calls openNewChatWithText with bootstrap text', async () => {
+  it('auto-calls openNewChatWithText with bootstrap text on success', async () => {
     await onCompressClick(adapter, makeTranscript(), panel, compressor)
-
-    const [, , onFresh] = (panel.showDone as ReturnType<typeof vi.fn>).mock.calls[0] as [CompressionDoneResult, () => void, () => Promise<void>]
-    await onFresh()
 
     expect(adapter.openNewChatWithText).toHaveBeenCalledOnce()
     const text = (adapter.openNewChatWithText as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
