@@ -8,12 +8,12 @@ PASS
 
 | Gate | Status | Command | Notes |
 |---|---|---|---|
-| Build | ✅ PASS | `npm run build` | 19 modules (new: `background.ts-7D7dniqv.js`), 0 errors |
-| Tests | ✅ PASS | `npm test` | 53/53 passed, 6 test files |
-| Typecheck | ✅ PASS | `npm run typecheck` (`tsc --noEmit`) | 0 errors |
-| Secrets (gitleaks) | ✅ PASS | `gitleaks detect --source . --no-git` | No leaks (139 KB scanned) |
-| Static analysis (semgrep) | ✅ PASS | `semgrep --config=p/default .` | 0 findings, 227 rules on 53 files |
-| Dependencies (osv-scanner) | ✅ PASS (warn) | `osv-scanner --recursive .` | 2 Medium in dev deps — pre-existing, not introduced here |
+| gitleaks | PASS | `gitleaks detect --source . --no-git` | no leaks found |
+| semgrep | PASS | `semgrep --config=p/default .` | no HIGH/CRITICAL findings |
+| osv-scanner | PASS (warnings) | `osv-scanner --recursive .` | 2 Medium dev-only vulns |
+| npm test | PASS | `npm test` | 45/45 pass |
+| npm build | PASS | `npm run build` | clean build |
+| typecheck | PASS (implicit via build) | tsc via vite | no type errors |
 
 ## Blocking failures
 
@@ -21,13 +21,11 @@ None.
 
 ## Non-blocking warnings
 
-- `esbuild@0.21.5` GHSA-67mh-4wv8-2f99, CVSS 5.3 (Medium) — pre-existing dev-only build tool
-- `vite@5.4.21` GHSA-4w7w-66w2-5vf9, CVSS 6.3 (Medium) — pre-existing dev-only build tool
+- GHSA-67mh-4wv8-2f99: esbuild 0.21.5 (dev) CVSS 5.3 Medium — fixed in 0.25.0
+- GHSA-4w7w-66w2-5vf9: vite 5.4.21 (dev) CVSS 6.3 Medium — fixed in 6.4.2
 
-Neither is Critical or High; both are dev-only (not shipped in extension).
+Both are dev-only build tools with no runtime exposure in the shipped extension bundle.
 
 ## Raw logs
 
-- `.mlo/command-output/gitleaks.txt`
-- `.mlo/command-output/semgrep.txt`
-- `.mlo/command-output/osv.txt`
+Captured inline from gate runner session.

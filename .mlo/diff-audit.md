@@ -2,40 +2,39 @@
 
 ## Summary
 
-XER-200: Adds `src/background.ts` (11 lines) — new MV3 service worker that calls `chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })` on `onInstalled` and `onStartup`. Updates `manifest.json` to register it. Fixes `Access to storage is not allowed from this context` thrown by content scripts.
+Phase 4 of CarryOver extension: implements "Continue Fresh" and "Copy Checkpoint" post-compression actions. Fixes background message protocol to return structured CompressResponse with accurate token counts. Makes compression testable via injectable Compressor parameter.
 
 ## Files changed
 
 | File | Change type | Reason | Risk |
 |---|---|---|---|
-| `src/background.ts` | added | New service worker — grants content-script access to session storage per Chrome docs | low |
-| `manifest.json` | modified | Registers `src/background.ts` as MV3 background service worker | low |
+| src/background-messages.ts | added | Typed message protocol for COMPRESS request/response | low |
+| src/background.ts | modified | Return full CompressResponse with token counts; use CompressRequest type | low |
+| src/content/badge/compress-handler.ts | modified | Injectable compressor param; use buildBootstrapText; call panel.showDone() | low |
+| src/content/badge/__tests__/compress-handler.test.ts | modified | Rewrite to test button-based showDone flow; add showDone to panel mock | low |
 
 ## Behavior changed
 
-- User-facing behavior: content scripts no longer throw storage-context error when calling `chrome.storage.session`
-- API behavior: none
+- User-facing behavior: post-compression panel shows original/compressed token counts and reduction %, with Copy Checkpoint and Continue Fresh buttons
+- API behavior: background returns { ok, checkpoint, originalTokens, compressedTokens, reductionPct } using OpenAI usage field for accurate token counts
 - DB/schema behavior: none
-- Background job behavior: new MV3 service worker registered; two event listeners call `setAccessLevel` — no data processing, no retries
-- Config/env behavior: manifest gains `"background"` key with `service_worker` + `type: module`
-- Auth/security behavior: Chrome session storage becomes readable/writable by content scripts (untrusted contexts) — intentional per fix spec
-- Frontend behavior: none
+- Background job behavior: background.ts now handles typed CompressRequest; returns CompressResponse union
+- Config/env behavior: none
+- Auth/security behavior: none
+- Frontend behavior: compress-handler.ts calls panel.showDone() with callbacks; Continue Fresh uses buildBootstrapText
 
 ## Blast radius
 
-- Modules touched: `manifest.json`, `src/background.ts` (new)
-- External services touched: none
-- Data models touched: none
+- Modules touched: background.ts, compress-handler.ts, background-messages.ts (new)
+- External services touched: OpenAI API (same endpoint, same key storage — no change)
+- Data models touched: CompressResponse shape changed (ok flag + token fields added)
 - Auth/payment/user-data touched: no
-- Build/deploy config touched: manifest change affects extension packaging; crxjs picks it up automatically
+- Build/deploy config touched: no
 
 ## Suspicious areas
 
-None. Change is minimal, directly prescribed by Chrome docs, and matches the spec exactly.
+None. Diff is focused and coherent. No validation deleted, no permissions changed, no error handling weakened.
 
 ## Human inspection required
 
-| File | Reason |
-|---|---|
-| `src/background.ts` | New execution context — new service worker in the extension |
-| `manifest.json` | Background registration changes extension capability surface |
+None.

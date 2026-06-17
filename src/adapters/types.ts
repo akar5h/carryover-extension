@@ -64,4 +64,6 @@ export interface PlatformAdapter {
   normalizeConversation(raw: unknown): NormalizedTranscript
   insertTextIntoComposer?(text: string): Promise<void>
   openNewChatWithText?(text: string): Promise<void>
+  /** Send prompt in the current chat and wait for the response. Returns response text. */
+  compressInChat?(prompt: string): Promise<string>
 }

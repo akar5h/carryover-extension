@@ -289,10 +289,16 @@ export class ClaudeAdapter implements PlatformAdapter {
     el.focus()
 
     if (el.tagName === 'TEXTAREA') {
-      (el as HTMLTextAreaElement).value = text
-      el.dispatchEvent(new Event('input', { bubbles: true }))
+      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+      if (nativeSetter) {
+        nativeSetter.call(el, text)
+      } else {
+        (el as HTMLTextAreaElement).value = text
+      }
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }))
     } else {
       // contenteditable — execCommand triggers React's synthetic event system
+      document.execCommand('selectAll', false, null)
       document.execCommand('insertText', false, text)
     }
   }
@@ -300,5 +306,71 @@ export class ClaudeAdapter implements PlatformAdapter {
   async openNewChatWithText(text: string): Promise<void> {
     await chrome.storage.session.set({ 'carryover:pending_insert': text })
     window.open('https://claude.ai/new', '_blank')
+  }
+
+  async compressInChat(prompt: string): Promise<string> {
+    await this.insertTextIntoComposer(prompt)
+    await this.delay(400)
+
+    const ASSISTANT_SEL = '[data-testid="claude-message"]'
+    // Claude streaming: response turn has data-is-streaming="true" while generating
+    const STREAMING_SELS = [
+      '[data-is-streaming="true"]',
+      '.result-streaming',
+      'button[aria-label*="Stop"]',
+      'button[aria-label="Stop generating"]',
+    ]
+    const SEND_SELS = [
+      'button[aria-label="Send message"]',
+      'button[aria-label*="Send"]',
+      'button[data-testid="send-button"]',
+      'button[type="submit"]',
+    ]
+
+    const prevCount = document.querySelectorAll(ASSISTANT_SEL).length
+    const sendBtn = this.findEnabledButton(SEND_SELS)
+    if (!sendBtn) makeError('FETCH_FAILED', 'Send button not found or disabled — click the composer and retry')
+
+    sendBtn.click()
+
+    // Phase 1: wait for generation to start (new streaming turn appears)
+    await new Promise<void>((resolve, reject) => {
+      if (STREAMING_SELS.some(s => document.querySelector(s))) { resolve(); return }
+      const t = window.setTimeout(() => { obs.disconnect(); reject(new Error('Response never started (20s)')) }, 20_000)
+      const obs = new MutationObserver(() => {
+        const newTurns = document.querySelectorAll(ASSISTANT_SEL).length > prevCount
+        const streaming = STREAMING_SELS.some(s => document.querySelector(s))
+        if (newTurns || streaming) { clearTimeout(t); obs.disconnect(); resolve() }
+      })
+      obs.observe(document.body, { childList: true, subtree: true })
+    })
+
+    // Phase 2: wait for streaming to stop + new turn has text
+    return new Promise<string>((resolve, reject) => {
+      const t = window.setTimeout(() => { obs.disconnect(); reject(new Error('Compression timed out (120s)')) }, 120_000)
+      const obs = new MutationObserver(() => {
+        if (STREAMING_SELS.some(s => document.querySelector(s))) return
+        const turns = document.querySelectorAll(ASSISTANT_SEL)
+        if (turns.length <= prevCount) return
+        const last = turns[turns.length - 1]
+        const txt = (last.querySelector('.font-claude-message') ?? last.querySelector('.font-claude-message-content') ?? last)
+          ?.textContent?.trim() ?? ''
+        if (!txt) return
+        clearTimeout(t); obs.disconnect(); resolve(txt)
+      })
+      obs.observe(document.body, { childList: true, subtree: true, characterData: true })
+    })
+  }
+
+  private findEnabledButton(selectors: string[]): HTMLButtonElement | null {
+    for (const sel of selectors) {
+      const btn = document.querySelector<HTMLButtonElement>(sel)
+      if (btn && !btn.disabled) return btn
+    }
+    return null
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(r => window.setTimeout(r, ms))
   }
 }

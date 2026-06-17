@@ -7,6 +7,13 @@ export interface PanelStats {
   messageCount: number
 }
 
+export interface CompressionDoneResult {
+  checkpoint: string
+  originalTokens: number
+  checkpointTokens: number
+  reductionPct: number
+}
+
 export interface BadgePanel {
   el: HTMLDivElement
   open(stats: PanelStats): void
@@ -16,6 +23,10 @@ export interface BadgePanel {
   clearMessage(): void
   setCompressState(state: 'idle' | 'loading'): void
   onCompress(handler: () => Promise<void>): void
+  showDone(
+    result: CompressionDoneResult,
+    onCopyCheckpoint: () => void,
+  ): void
 }
 
 export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
@@ -64,6 +75,7 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   const divider2 = document.createElement('div')
   divider2.className = 'co-panel-divider'
 
+  // Pre-compression estimate rows
   const rowIfCompressed = document.createElement('div')
   rowIfCompressed.className = 'co-panel-row'
   const rowIfCompressedLabel = document.createElement('span')
@@ -82,6 +94,41 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   rowReduction.appendChild(rowReductionLabel)
   rowReduction.appendChild(rowReductionValue)
 
+  // Post-compression actual stats rows (hidden until done)
+  const dividerDone = document.createElement('div')
+  dividerDone.className = 'co-panel-divider'
+  dividerDone.style.display = 'none'
+
+  const rowOrigTokens = document.createElement('div')
+  rowOrigTokens.className = 'co-panel-row'
+  rowOrigTokens.style.display = 'none'
+  const rowOrigTokensLabel = document.createElement('span')
+  rowOrigTokensLabel.textContent = 'Original:'
+  const rowOrigTokensValue = document.createElement('span')
+  rowOrigTokensValue.className = 'co-panel-value'
+  rowOrigTokens.appendChild(rowOrigTokensLabel)
+  rowOrigTokens.appendChild(rowOrigTokensValue)
+
+  const rowCpTokens = document.createElement('div')
+  rowCpTokens.className = 'co-panel-row'
+  rowCpTokens.style.display = 'none'
+  const rowCpTokensLabel = document.createElement('span')
+  rowCpTokensLabel.textContent = 'Checkpoint:'
+  const rowCpTokensValue = document.createElement('span')
+  rowCpTokensValue.className = 'co-panel-value'
+  rowCpTokens.appendChild(rowCpTokensLabel)
+  rowCpTokens.appendChild(rowCpTokensValue)
+
+  const rowActualReduction = document.createElement('div')
+  rowActualReduction.className = 'co-panel-row'
+  rowActualReduction.style.display = 'none'
+  const rowActualReductionLabel = document.createElement('span')
+  rowActualReductionLabel.textContent = 'Reduction:'
+  const rowActualReductionValue = document.createElement('span')
+  rowActualReductionValue.className = 'co-panel-value'
+  rowActualReduction.appendChild(rowActualReductionLabel)
+  rowActualReduction.appendChild(rowActualReductionValue)
+
   const divider3 = document.createElement('div')
   divider3.className = 'co-panel-divider'
 
@@ -89,6 +136,19 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   btn.className = 'co-btn-compress'
   btn.textContent = 'Compress & Carry Over'
   btn.disabled = true
+
+  // Post-compression action buttons (hidden until done)
+  const btnCopy = document.createElement('button')
+  btnCopy.className = 'co-btn-compress'
+  btnCopy.textContent = 'Copy Checkpoint'
+  btnCopy.style.display = 'none'
+  btnCopy.style.marginTop = '4px'
+
+  const btnFresh = document.createElement('button')
+  btnFresh.className = 'co-btn-compress'
+  btnFresh.textContent = 'Continue Fresh'
+  btnFresh.style.display = 'none'
+  btnFresh.style.marginTop = '4px'
 
   const msgEl = document.createElement('div')
   msgEl.className = 'co-panel-msg'
@@ -102,8 +162,14 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   panel.appendChild(divider2)
   panel.appendChild(rowIfCompressed)
   panel.appendChild(rowReduction)
+  panel.appendChild(dividerDone)
+  panel.appendChild(rowOrigTokens)
+  panel.appendChild(rowCpTokens)
+  panel.appendChild(rowActualReduction)
   panel.appendChild(divider3)
   panel.appendChild(btn)
+  panel.appendChild(btnCopy)
+  panel.appendChild(btnFresh)
   panel.appendChild(msgEl)
 
   let compressHandler: (() => Promise<void>) | null = null
@@ -112,9 +178,21 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     if (compressHandler) void compressHandler()
   })
 
+  function hideDoneState(): void {
+    dividerDone.style.display = 'none'
+    rowOrigTokens.style.display = 'none'
+    rowCpTokens.style.display = 'none'
+    rowActualReduction.style.display = 'none'
+    btnCopy.style.display = 'none'
+    btnFresh.style.display = 'none'
+    btn.style.display = ''
+  }
+
   return {
     el: panel,
     open(stats: PanelStats): void {
+      hideDoneState()
+
       rowTokensValue.textContent = stats.estimatedTokens.toLocaleString()
       rowLoadValue.textContent = `${Math.round(stats.contextLoadPct)}%`
       if (showPlatformUsage) {
@@ -155,7 +233,7 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     },
     setCompressState(state: 'idle' | 'loading'): void {
       if (state === 'loading') {
-        btn.textContent = 'Opening...'
+        btn.textContent = 'Compressing...'
         btn.disabled = true
       } else {
         btn.textContent = 'Compress & Carry Over'
@@ -164,6 +242,37 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     },
     onCompress(handler: () => Promise<void>): void {
       compressHandler = handler
+    },
+    showDone(
+      result: CompressionDoneResult,
+      onCopyCheckpoint: () => void,
+    ): void {
+      // Show actual stats
+      rowOrigTokensValue.textContent = result.originalTokens.toLocaleString()
+      rowCpTokensValue.textContent = result.checkpointTokens.toLocaleString()
+      rowActualReductionValue.textContent = `${result.reductionPct}%`
+
+      dividerDone.style.display = ''
+      rowOrigTokens.style.display = ''
+      rowCpTokens.style.display = ''
+      rowActualReduction.style.display = ''
+
+      // Replace compress button with Copy Checkpoint (new chat already opened automatically)
+      btn.style.display = 'none'
+      btnFresh.style.display = 'none'
+
+      const newCopy = btnCopy.cloneNode(true) as HTMLButtonElement
+      newCopy.style.display = ''
+      newCopy.style.marginTop = '4px'
+      btnCopy.replaceWith(newCopy)
+      newCopy.addEventListener('click', onCopyCheckpoint)
+
+      // Status: new tab was auto-opened
+      msgEl.textContent = '✓ New chat opened. Checkpoint auto-pasted.'
+      msgEl.style.display = ''
+      msgEl.style.color = '#4ecf8a'
+      msgEl.style.fontSize = '11px'
+      msgEl.style.marginTop = '6px'
     },
   }
 }

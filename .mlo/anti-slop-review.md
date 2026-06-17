@@ -6,29 +6,29 @@ PASS
 
 ## Summary
 
-XER-200 adds 11 lines of service worker code. Two event listeners, two identical one-liner calls. No abstraction, no ceremony, no bloat. Exactly what the Chrome docs require and what the spec prescribes.
+The diff is minimal and purposeful. Each change serves a direct Phase 4 requirement. No speculative abstraction, no ornamental patterns, no bloat.
 
 ## Slop findings
 
 | Severity | File | Finding | Why it matters | Required fix |
 |---|---|---|---|---|
-| — | — | None | — | — |
+| none | — | — | — | — |
 
 ## Bloat check
 
-- unnecessary abstraction: none
-- fake fallback: none — no try/catch added (setAccessLevel is fire-and-forget in service workers)
-- broad try/catch: none
-- duplicate logic: `setAccessLevel` called in both listeners — intentional, not duplication; each listener fires in a different lifecycle phase
-- dead code: none
-- unrelated refactor: none
-- speculative extensibility: none — exactly what the spec requires
+- unnecessary abstraction: no — `Compressor` type is needed for testability; default `chromeCompressor` is wired automatically
+- fake fallback: no — `?? 0` and `?? originalTokens` on token counts are genuine guards for missing OpenAI usage field
+- broad try/catch: no — catch in background.ts wraps fetch, which is correct; error info preserved
+- duplicate logic: no — token estimation removed from compress-handler (now comes from background via OpenAI usage)
+- dead code: no — `CompressRequest` type is used in background.ts listener
+- unrelated refactor: no — all changes scoped to Phase 4 compression flow
+- speculative extensibility: no — Compressor type is single-purpose; no future-proofing added
 
 ## Success path clarity
 
 YES
 
-Service worker fires on install/startup → `setAccessLevel` → content scripts can access `chrome.storage.session`. Single, clear path.
+compress → background (OpenAI) → CompressSuccess → showDone → user clicks Copy or Continue Fresh
 
 ## Required cleanup
 
@@ -36,4 +36,4 @@ None.
 
 ## Non-blocking suggestions
 
-None.
+- Dev dependency upgrades (esbuild, vite) flagged by osv-scanner are unrelated to this change but worth scheduling.

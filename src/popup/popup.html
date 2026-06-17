@@ -16,12 +16,63 @@
         font-size: 1.25rem;
         font-weight: 700;
         color: #fff;
+        margin: 0 0 16px;
       }
       h1 span { color: #7c6af7; }
+      label {
+        display: block;
+        font-size: 12px;
+        color: #a0a0a0;
+        margin-bottom: 4px;
+      }
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 4px;
+        color: #e0e0e0;
+        font-size: 12px;
+        padding: 6px 8px;
+        outline: none;
+      }
+      input:focus { border-color: #7c6af7; }
+      button {
+        width: 100%;
+        margin-top: 8px;
+        padding: 7px 0;
+        background: #7c6af7;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      button:hover { background: #6a58e0; }
+      #status {
+        font-size: 11px;
+        margin-top: 6px;
+        min-height: 14px;
+      }
+      .hint {
+        font-size: 11px;
+        color: #666;
+        margin-top: 8px;
+        line-height: 1.4;
+      }
     </style>
   </head>
   <body>
     <h1>Carry<span>Over</span></h1>
+    <label for="openai-key">OpenAI API Key</label>
+    <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
+    <button id="btn-save">Save</button>
+    <div id="status"></div>
+    <p class="hint">
+      Key is stored locally in your browser and used only to compress conversations via the OpenAI API.
+    </p>
     <script type="module" src="./popup.ts"></script>
   </body>
 </html>

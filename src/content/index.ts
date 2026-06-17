@@ -5,7 +5,7 @@ import { SpaNavigator } from './spa-navigator'
 import { startBadgeUpdater } from './badge/badge-updater'
 
 const PENDING_INSERT_KEY = 'carryover:pending_insert'
-const PENDING_INSERT_TIMEOUT_MS = 3000
+const PENDING_INSERT_TIMEOUT_MS = 10_000
 const PENDING_INSERT_POLL_MS = 100
 
 function getAdapter(): PlatformAdapter | null {
