@@ -1,4 +1,5 @@
 import { estimateCompressedTokens } from '../../compression/prompt-builder'
+import { usageStatusForPercent } from './badge'
 
 export interface PanelStats {
   estimatedTokens: number
@@ -17,6 +18,7 @@ export interface CompressionDoneResult {
 export interface BadgePanel {
   el: HTMLDivElement
   open(stats: PanelStats): void
+  update(stats: PanelStats): void
   close(): void
   isOpen(): boolean
   showMessage(msg: string): void
@@ -31,6 +33,7 @@ export interface BadgePanel {
 
 export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
   let visible = false
+  let compressing = false
 
   const panel = document.createElement('div')
   panel.id = 'carryover-panel'
@@ -43,6 +46,15 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
 
   const divider1 = document.createElement('div')
   divider1.className = 'co-panel-divider'
+
+  const rowStatus = document.createElement('div')
+  rowStatus.className = 'co-panel-row'
+  const rowStatusLabel = document.createElement('span')
+  rowStatusLabel.textContent = 'Status:'
+  const rowStatusValue = document.createElement('span')
+  rowStatusValue.className = 'co-panel-value'
+  rowStatus.appendChild(rowStatusLabel)
+  rowStatus.appendChild(rowStatusValue)
 
   const rowTokens = document.createElement('div')
   rowTokens.className = 'co-panel-row'
@@ -156,6 +168,7 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
 
   panel.appendChild(header)
   panel.appendChild(divider1)
+  panel.appendChild(rowStatus)
   panel.appendChild(rowTokens)
   panel.appendChild(rowLoad)
   panel.appendChild(rowPlatform)
@@ -188,33 +201,43 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
     btn.style.display = ''
   }
 
+  function applyStats(stats: PanelStats): void {
+    const status = usageStatusForPercent(stats.contextLoadPct)
+    rowStatusValue.textContent = status.label
+    rowStatusValue.style.color = status.color
+    rowStatusValue.style.fontWeight = '600'
+    rowTokensValue.textContent = stats.estimatedTokens.toLocaleString()
+    rowLoadValue.textContent = `${Math.round(stats.contextLoadPct)}%`
+    if (showPlatformUsage) {
+      rowPlatformValue.textContent =
+        stats.platformUsagePct !== null ? `${Math.round(stats.platformUsagePct)}%` : '-'
+    }
+
+    const { low, high } = estimateCompressedTokens(stats.estimatedTokens)
+    rowIfCompressedValue.textContent = `~${low.toLocaleString()}–${high.toLocaleString()}`
+    const reductionPct = stats.estimatedTokens > 0
+      ? Math.round((1 - low / stats.estimatedTokens) * 100)
+      : 0
+    rowReductionValue.textContent = `~${reductionPct}%`
+
+    const enabled = stats.messageCount > 0 && !compressing
+    btn.disabled = !enabled
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed'
+    btn.style.opacity = enabled ? '1' : '0.6'
+    btn.style.color = enabled ? '#e0e0e0' : '#666'
+  }
+
   return {
     el: panel,
     open(stats: PanelStats): void {
       hideDoneState()
-
-      rowTokensValue.textContent = stats.estimatedTokens.toLocaleString()
-      rowLoadValue.textContent = `${Math.round(stats.contextLoadPct)}%`
-      if (showPlatformUsage) {
-        rowPlatformValue.textContent =
-          stats.platformUsagePct !== null ? `${Math.round(stats.platformUsagePct)}%` : '-'
-      }
-
-      const { low, high } = estimateCompressedTokens(stats.estimatedTokens)
-      rowIfCompressedValue.textContent = `~${low.toLocaleString()}–${high.toLocaleString()}`
-      const reductionPct = stats.estimatedTokens > 0
-        ? Math.round((1 - low / stats.estimatedTokens) * 100)
-        : 0
-      rowReductionValue.textContent = `~${reductionPct}%`
-
-      const hasMessages = stats.messageCount > 0
-      btn.disabled = !hasMessages
-      btn.style.cursor = hasMessages ? 'pointer' : 'not-allowed'
-      btn.style.opacity = hasMessages ? '1' : '0.6'
-      btn.style.color = hasMessages ? '#e0e0e0' : '#666'
+      applyStats(stats)
 
       panel.style.display = ''
       visible = true
+    },
+    update(stats: PanelStats): void {
+      applyStats(stats)
     },
     close(): void {
       panel.style.display = 'none'
@@ -232,6 +255,7 @@ export function createBadgePanel(showPlatformUsage: boolean): BadgePanel {
       msgEl.style.display = 'none'
     },
     setCompressState(state: 'idle' | 'loading'): void {
+      compressing = state === 'loading'
       if (state === 'loading') {
         btn.textContent = 'Compressing...'
         btn.disabled = true

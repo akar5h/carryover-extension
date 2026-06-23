@@ -1,15 +1,16 @@
 import type { PlatformAdapter, NormalizedTranscript } from '../../adapters/types'
-import { buildCompressionPrompt } from '../../compression/prompt-builder'
+import {
+  buildCompressionPrompt,
+  buildInContextCompressionPrompt,
+} from '../../compression/prompt-builder'
 import { buildBootstrapText } from '../../compression/bootstrap-prompt'
 import type { BadgePanel } from './badge-panel'
 import type { CompressSuccess } from '../../background-messages'
+import { COMPRESSION_MODE_STORAGE_KEY, DEFAULT_COMPRESSION_MODE, normalizeCompressionMode } from '../../settings'
+import type { CompressionMode } from '../../settings'
+import { estimateTranscriptTokens } from '../../token-estimator'
 
 export type Compressor = (prompt: string, originalTokens: number) => Promise<CompressSuccess>
-
-function estimateTokens(transcript: NormalizedTranscript): number {
-  const chars = transcript.messages.reduce((sum, m) => sum + m.text.length, 0)
-  return Math.ceil(chars / 4)
-}
 
 /**
  * Default compressor: injects prompt into the current chat and waits for the
@@ -51,15 +52,31 @@ function chromeCompressor(prompt: string, originalTokens: number): Promise<Compr
   })
 }
 
+async function getCompressionMode(): Promise<CompressionMode> {
+  try {
+    const stored = await chrome.storage.sync.get(COMPRESSION_MODE_STORAGE_KEY)
+    return normalizeCompressionMode(stored[COMPRESSION_MODE_STORAGE_KEY])
+  } catch {
+    return DEFAULT_COMPRESSION_MODE
+  }
+}
+
+function usesApiFallback(adapter: PlatformAdapter, mode: CompressionMode): boolean {
+  return mode === 'api_fallback' || !adapter.compressInChat
+}
+
+function resolveCompressor(
+  adapter: PlatformAdapter,
+  mode: CompressionMode
+): Compressor {
+  return usesApiFallback(adapter, mode) ? chromeCompressor : makeInChatCompressor(adapter)
+}
+
 export async function onCompressClick(
   adapter: PlatformAdapter,
   cachedTranscript: NormalizedTranscript | null,
   panel: BadgePanel,
-  // Use in-chat compression by default (no API key needed).
-  // Falls back to OpenAI API via background worker if compressInChat is unavailable.
-  compressor: Compressor = adapter.compressInChat
-    ? makeInChatCompressor(adapter)
-    : chromeCompressor,
+  compressor?: Compressor,
 ): Promise<void> {
   const convId = adapter.getConversationIdFromUrl()
   if (!convId && !cachedTranscript) {
@@ -72,10 +89,15 @@ export async function onCompressClick(
 
   try {
     const transcript = cachedTranscript ?? await adapter.fetchConversation(convId!)
-    const prompt = buildCompressionPrompt(transcript)
-    const originalTokens = estimateTokens(transcript)
+    const originalTokens = estimateTranscriptTokens(transcript)
+    const mode = await getCompressionMode()
+    const apiFallback = usesApiFallback(adapter, mode)
+    const prompt = apiFallback
+      ? buildCompressionPrompt(transcript)
+      : buildInContextCompressionPrompt()
 
-    const result = await compressor(prompt, originalTokens)
+    const activeCompressor = compressor ?? resolveCompressor(adapter, mode)
+    const result = await activeCompressor(prompt, originalTokens)
 
     panel.setCompressState('idle')
 
@@ -83,7 +105,7 @@ export async function onCompressClick(
     // User should not need to click a second button — "Compress & Carry Over" does both.
     void navigator.clipboard?.writeText(result.checkpoint)
     if (adapter.openNewChatWithText) {
-      void adapter.openNewChatWithText(buildBootstrapText(result.checkpoint))
+      await adapter.openNewChatWithText(buildBootstrapText(result.checkpoint))
     }
 
     panel.showDone(

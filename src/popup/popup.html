@@ -8,7 +8,7 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: #0f0f0f;
         color: #e0e0e0;
-        width: 300px;
+        width: 320px;
         padding: 16px;
         margin: 0;
       }
@@ -16,7 +16,7 @@
         font-size: 1.25rem;
         font-weight: 700;
         color: #fff;
-        margin: 0 0 16px;
+        margin: 0 0 14px;
       }
       h1 span { color: #7c6af7; }
       label {
@@ -39,6 +39,108 @@
       }
       input:focus { border-color: #7c6af7; }
       button {
+        font: inherit;
+      }
+      .section {
+        border-top: 1px solid #252525;
+        padding-top: 12px;
+        margin-top: 12px;
+      }
+      .section:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+        margin-top: 0;
+      }
+      .section-title {
+        color: #a0a0a0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0;
+        margin-bottom: 7px;
+      }
+      .page-status {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        min-height: 20px;
+      }
+      .status-dot {
+        background: #666;
+        border-radius: 50%;
+        display: inline-block;
+        height: 7px;
+        flex: 0 0 auto;
+        width: 7px;
+      }
+      .status-dot.is-active { background: #4ecf8a; }
+      .status-dot.is-warning { background: #f6c84c; }
+      .status-dot.is-off { background: #ff5a6a; }
+      #page-status-text {
+        color: #e0e0e0;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .segmented {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 3px;
+      }
+      .mode-button {
+        background: transparent;
+        border: 0;
+        border-radius: 4px;
+        color: #a0a0a0;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 6px 4px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .mode-button[aria-pressed="true"] {
+        background: #7c6af7;
+        color: #fff;
+      }
+      .mode-note {
+        color: #666;
+        font-size: 11px;
+        line-height: 1.4;
+        margin-top: 8px;
+      }
+      .fallback-header {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: #e0e0e0;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        padding: 0;
+        width: 100%;
+      }
+      .fallback-title {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .fallback-pill {
+        border: 1px solid #333;
+        border-radius: 999px;
+        color: #777;
+        font-size: 10px;
+        padding: 2px 7px;
+      }
+      .fallback-pill.is-required {
+        border-color: rgba(246, 200, 76, 0.45);
+        color: #f6c84c;
+      }
+      #fallback-body {
+        margin-top: 10px;
+      }
+      #fallback-body.is-hidden {
+        display: none;
+      }
+      .save-button {
         width: 100%;
         margin-top: 8px;
         padding: 7px 0;
@@ -50,7 +152,7 @@
         cursor: pointer;
         transition: background 0.15s;
       }
-      button:hover { background: #6a58e0; }
+      .save-button:hover { background: #6a58e0; }
       #status {
         font-size: 11px;
         margin-top: 6px;
@@ -66,13 +168,38 @@
   </head>
   <body>
     <h1>Carry<span>Over</span></h1>
-    <label for="openai-key">OpenAI API Key</label>
-    <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
-    <button id="btn-save">Save</button>
-    <div id="status"></div>
-    <p class="hint">
-      Key is stored locally in your browser and used only to compress conversations via the OpenAI API.
-    </p>
+    <section class="section">
+      <div class="section-title">Current page</div>
+      <div class="page-status">
+        <span id="page-status-dot" class="status-dot"></span>
+        <span id="page-status-text">Checking current tab...</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">Compression mode</div>
+      <div class="segmented" role="group" aria-label="Compression mode">
+        <button type="button" class="mode-button" id="mode-current-chat" aria-pressed="true">Current chat</button>
+        <button type="button" class="mode-button" id="mode-api-fallback" aria-pressed="false">API fallback</button>
+      </div>
+      <div id="mode-note" class="mode-note">Uses the active ChatGPT or Claude tab.</div>
+    </section>
+
+    <section class="section" id="fallback-section">
+      <button type="button" class="fallback-header" id="fallback-toggle" aria-expanded="false">
+        <span class="fallback-title">Advanced fallback</span>
+        <span class="fallback-pill" id="fallback-pill">Optional</span>
+      </button>
+      <div id="fallback-body" class="is-hidden">
+        <label for="openai-key">OpenAI API key</label>
+        <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
+        <button type="button" id="btn-save" class="save-button">Save key</button>
+        <div id="status"></div>
+        <p class="hint">
+          Required only when API fallback is selected.
+        </p>
+      </div>
+    </section>
     <script type="module" src="./popup.ts"></script>
   </body>
 </html>

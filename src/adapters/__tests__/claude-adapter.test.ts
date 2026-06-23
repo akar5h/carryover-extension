@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ClaudeAdapter } from '../claude-adapter'
 
 // Stub browser globals not present in Node
-vi.stubGlobal('location', { hostname: 'claude.ai', pathname: '/chat/aaaa-bbbb', href: 'https://claude.ai/chat/aaaa-bbbb' })
+vi.stubGlobal('location', {
+  hostname: 'claude.ai',
+  pathname: '/chat/aaaa-bbbb',
+  href: 'https://claude.ai/chat/aaaa-bbbb',
+  assign: vi.fn(),
+})
 vi.stubGlobal('chrome', {
   storage: {
     session: {
@@ -201,15 +206,38 @@ describe('ClaudeAdapter composition methods', () => {
   })
 
   describe('openNewChatWithText', () => {
-    it('stores text in session storage and opens new tab', async () => {
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
-
+    it('stores text and navigates the current tab to a fresh chat', async () => {
       await adapter.openNewChatWithText('my text')
 
       expect(chrome.storage.session.set).toHaveBeenCalledWith({
         'carryover:pending_insert': 'my text',
       })
-      expect(openSpy).toHaveBeenCalledWith('https://claude.ai/new', '_blank')
+      expect(location.assign).toHaveBeenCalledWith('https://claude.ai/new')
     })
+  })
+})
+
+describe('ClaudeAdapter live tracking', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('extracts user and assistant messages with streaming state', () => {
+    document.body.innerHTML = `
+      <main>
+        <div data-testid="user-message" data-message-id="user-1">Question</div>
+        <div data-testid="claude-message" data-message-id="assistant-1" data-is-streaming="true">
+          <div class="font-claude-message">Streaming answer</div>
+        </div>
+      </main>
+    `
+    const adapter = new ClaudeAdapter()
+
+    expect(adapter.getConversationRoot()).toBe(document.querySelector('main'))
+    expect(adapter.readVisibleMessages()).toEqual([
+      { id: 'user-1', role: 'user', text: 'Question', streaming: false },
+      { id: 'assistant-1', role: 'assistant', text: 'Streaming answer', streaming: true },
+    ])
+    expect(adapter.isGenerating()).toBe(true)
   })
 })

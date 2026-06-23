@@ -4,6 +4,7 @@ import type { Compressor } from '../compress-handler'
 import type { PlatformAdapter, NormalizedTranscript, PlatformUsage } from '../../../adapters/types'
 import type { BadgePanel, CompressionDoneResult } from '../badge-panel'
 import type { CompressSuccess } from '../../../background-messages'
+import { COMPRESSION_MODE_STORAGE_KEY } from '../../../settings'
 
 function makeTranscript(overrides: Partial<NormalizedTranscript> = {}): NormalizedTranscript {
   return {
@@ -29,6 +30,7 @@ function makeAdapter(overrides: Partial<PlatformAdapter> = {}): PlatformAdapter 
     normalizeConversation: vi.fn(),
     insertTextIntoComposer: vi.fn().mockResolvedValue(undefined),
     openNewChatWithText: vi.fn().mockResolvedValue(undefined),
+    compressInChat: vi.fn().mockResolvedValue('compressed result'),
     ...overrides,
   }
 }
@@ -48,6 +50,7 @@ function makePanel(): BadgePanel {
   return {
     el: document.createElement('div'),
     open: vi.fn(),
+    update: vi.fn(),
     close: vi.fn(),
     isOpen: vi.fn().mockReturnValue(false),
     showMessage: vi.fn(),
@@ -64,6 +67,13 @@ describe('onCompressClick', () => {
   let compressor: Compressor
 
   beforeEach(() => {
+    vi.stubGlobal('chrome', {
+      storage: {
+        sync: {
+          get: vi.fn().mockResolvedValue({}),
+        },
+      },
+    })
     adapter = makeAdapter()
     panel = makePanel()
     compressor = makeCompressor()
@@ -82,13 +92,37 @@ describe('onCompressClick', () => {
     expect(adapter.fetchConversation).toHaveBeenCalledWith('conv-1')
   })
 
-  it('passes transcript content to compressor', async () => {
+  it('uses the short in-context prompt for Current Chat mode', async () => {
     await onCompressClick(adapter, makeTranscript(), panel, compressor)
 
     expect(compressor).toHaveBeenCalledOnce()
     const [prompt] = (compressor as ReturnType<typeof vi.fn>).mock.calls[0] as [string, number]
-    expect(prompt).toContain('Hello')
-    expect(prompt).toContain('Hi there')
+    expect(prompt).toContain('conversation context already available to you')
+    expect(prompt).not.toContain('Hello')
+    expect(prompt).not.toContain('Hi there')
+    expect(prompt).not.toContain('--- CONVERSATION START ---')
+  })
+
+  it('includes the transcript when the adapter must use API fallback', async () => {
+    adapter = makeAdapter({ compressInChat: undefined })
+
+    await onCompressClick(adapter, makeTranscript(), panel, compressor)
+
+    const [prompt] = (compressor as ReturnType<typeof vi.fn>).mock.calls[0] as [string, number]
+    expect(prompt).toContain('--- CONVERSATION START ---')
+    expect(prompt).toContain('User: Hello')
+    expect(prompt).toContain('Assistant: Hi there')
+  })
+
+  it('includes the transcript when API Fallback mode is selected', async () => {
+    const storageGet = chrome.storage.sync.get as ReturnType<typeof vi.fn>
+    storageGet.mockResolvedValue({ [COMPRESSION_MODE_STORAGE_KEY]: 'api_fallback' })
+
+    await onCompressClick(adapter, makeTranscript(), panel, compressor)
+
+    const [prompt] = (compressor as ReturnType<typeof vi.fn>).mock.calls[0] as [string, number]
+    expect(prompt).toContain('--- CONVERSATION START ---')
+    expect(prompt).toContain('User: Hello')
   })
 
   it('sets loading state before async work, resets to idle on success', async () => {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { buildCompressionPrompt, estimateCompressedTokens } from '../prompt-builder'
+import {
+  buildCompressionPrompt,
+  buildInContextCompressionPrompt,
+  estimateCompressedTokens,
+} from '../prompt-builder'
 import type { NormalizedTranscript } from '../../adapters/types'
 
 const base: NormalizedTranscript = {
@@ -11,12 +15,15 @@ const base: NormalizedTranscript = {
 }
 
 describe('buildCompressionPrompt', () => {
-  it('contains all 8 required sections', () => {
+  it('contains every required checkpoint section', () => {
     const prompt = buildCompressionPrompt(base)
     expect(prompt).toContain('## 🎯 Current Task & Goal')
+    expect(prompt).toContain('## ✅ Completed Work')
+    expect(prompt).toContain('## 🔄 Current State')
     expect(prompt).toContain('## 📋 Decisions Made')
-    expect(prompt).toContain('## 🔒 Active Constraints')
+    expect(prompt).toContain('## 🔒 Active Constraints & Preferences')
     expect(prompt).toContain('## 🗂️ Topics Covered')
+    expect(prompt).toContain('## ⚠️ Known Issues & Failed Approaches')
     expect(prompt).toContain('## 📎 Artifacts & References')
     expect(prompt).toContain('## ❓ Open Questions')
     expect(prompt).toContain('## 💻 Code / Data State')
@@ -76,6 +83,26 @@ describe('buildCompressionPrompt', () => {
     }
     const prompt = buildCompressionPrompt(transcript)
     expect(prompt).toContain('[No messages]')
+  })
+})
+
+describe('buildInContextCompressionPrompt', () => {
+  it('uses existing chat context without embedding transcript markers', () => {
+    const prompt = buildInContextCompressionPrompt()
+
+    expect(prompt).toContain('conversation context already available to you')
+    expect(prompt).not.toContain('--- CONVERSATION START ---')
+    expect(prompt).not.toContain('{messages}')
+  })
+
+  it('includes accuracy, conflict, security, and size boundaries', () => {
+    const prompt = buildInContextCompressionPrompt()
+
+    expect(prompt).toContain('Never invent missing facts')
+    expect(prompt).toContain('mark earlier ones as superseded')
+    expect(prompt).toContain('Never include passwords, API keys')
+    expect(prompt).toContain('Target 5,000 tokens or fewer')
+    expect(prompt).toContain('Use up to 8,000 only when critical technical')
   })
 })
 

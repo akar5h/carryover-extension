@@ -1,27 +1,15 @@
-import type { PlatformAdapter, NormalizedTranscript } from '../../adapters/types'
-import { createBadge, INNER_CIRC, OUTER_CIRC } from './badge'
+import type { PlatformAdapter, PlatformName } from '../../adapters/types'
+import { createBadge, INNER_CIRC, OUTER_CIRC, usageColorForPercent } from './badge'
 import { createBadgePanel } from './badge-panel'
+import type { PanelStats } from './badge-panel'
 import { onCompressClick } from './compress-handler'
 import type { SpaNavigator } from '../spa-navigator'
+import { LiveTranscriptTracker } from '../tracking/live-transcript-tracker'
+import type { LiveTrackerState } from '../tracking/live-transcript-tracker'
 
-// Chars-per-token industry estimate: OpenAI / Anthropic both use ~4 chars = 1 token
-// for typical English prose. Accurate to ±10-15%; underestimates code.
-function estimateTokens(transcript: NormalizedTranscript): number {
-  const chars = transcript.messages.reduce((sum, m) => sum + m.text.length, 0)
-  return Math.ceil(chars / 4)
-}
-
-// Context window by platform. ChatGPT default model (GPT-4o / o1) is 128k;
-// Claude is 200k. Using platform default so the ring reflects actual model capacity.
-// If we can detect the active model from the transcript metadata in the future,
-// we can be more precise here.
-const CONTEXT_WINDOW: Record<string, number> = {
+const CONTEXT_WINDOW: Record<PlatformName, number> = {
   claude: 200_000,
   chatgpt: 128_000,
-}
-
-function contextWindow(transcript: NormalizedTranscript): number {
-  return CONTEXT_WINDOW[transcript.platform] ?? 128_000
 }
 
 function clamp(val: number, lo: number, hi: number): number {
@@ -29,106 +17,91 @@ function clamp(val: number, lo: number, hi: number): number {
 }
 
 export function startBadgeUpdater(adapter: PlatformAdapter, navigator: SpaNavigator): void {
-  const { badgeEl, innerFill, outerFill, outerTrack } = createBadge()
-
+  const { badgeEl, innerFill, outerFill, outerTrack, percentText } = createBadge()
   const showPlatformUsage = location.hostname === 'claude.ai'
   const panel = createBadgePanel(showPlatformUsage)
+  const tracker = new LiveTranscriptTracker(adapter)
   document.body.appendChild(panel.el)
 
-  let cachedTranscript: NormalizedTranscript | null = null
-  let fetchInFlight = false
+  let trackerState = tracker.getState()
+  let platformUsagePct: number | null = null
 
-  panel.onCompress(() => onCompressClick(adapter, cachedTranscript, panel))
-
-  async function fetchAndUpdate(): Promise<void> {
-    if (fetchInFlight) return
-    const convId = adapter.getConversationIdFromUrl()
-    if (!convId) return
-
-    fetchInFlight = true
-    try {
-      cachedTranscript = await adapter.fetchConversation(convId)
-      updateRings()
-    } catch {
-      // API failed — rings stay at last value
-    } finally {
-      fetchInFlight = false
+  function panelStats(state: LiveTrackerState): PanelStats {
+    const contextWindow = CONTEXT_WINDOW[adapter.name]
+    return {
+      estimatedTokens: state.totalTokens,
+      contextLoadPct: clamp(state.totalTokens / contextWindow, 0, 1) * 100,
+      platformUsagePct,
+      messageCount: state.transcript?.messages.length ?? 0,
     }
   }
 
-  function updateRings(): void {
-    if (!cachedTranscript) return
-
-    const tokens = estimateTokens(cachedTranscript)
-    const innerPct = clamp(tokens / contextWindow(cachedTranscript), 0, 1)
-
-    innerFill.style.strokeDasharray  = `${INNER_CIRC}`
+  function updateInnerRing(tokens: number): void {
+    const innerPct = clamp(tokens / CONTEXT_WINDOW[adapter.name], 0, 1)
+    const percentUsed = Math.round(innerPct * 100)
+    const color = usageColorForPercent(percentUsed)
+    innerFill.style.strokeDasharray = `${INNER_CIRC}`
     innerFill.style.strokeDashoffset = `${INNER_CIRC * (1 - innerPct)}`
+    innerFill.style.stroke = color
+    percentText.textContent = `${percentUsed}%`
+    percentText.style.fill = color
   }
+
+  tracker.subscribe((state) => {
+    trackerState = state
+    updateInnerRing(state.totalTokens)
+    if (panel.isOpen()) panel.update(panelStats(state))
+  })
+
+  panel.onCompress(async () => {
+    await tracker.reconcile()
+    await onCompressClick(adapter, tracker.getTranscript(), panel)
+  })
 
   async function updateOuterRing(): Promise<void> {
     const usage = await adapter.getUsageInfo()
+    platformUsagePct = usage.available ? (usage.percentUsed ?? null) : null
     if (!usage.available || usage.percentUsed == null) {
       outerTrack.style.display = 'none'
-      outerFill.style.display  = 'none'
+      outerFill.style.display = 'none'
     } else {
       outerTrack.style.display = ''
-      outerFill.style.display  = ''
+      outerFill.style.display = ''
       const outerPct = clamp(usage.percentUsed / 100, 0, 1)
-      outerFill.style.strokeDasharray  = `${OUTER_CIRC}`
+      outerFill.style.strokeDasharray = `${OUTER_CIRC}`
       outerFill.style.strokeDashoffset = `${OUTER_CIRC * (1 - outerPct)}`
+      outerFill.style.stroke = usageColorForPercent(outerPct * 100)
     }
+    if (panel.isOpen()) panel.update(panelStats(trackerState))
   }
 
-  // SPA navigation: reset and re-fetch
-  navigator.onConversationChange(() => {
-    cachedTranscript = null
-    fetchInFlight = false
-    updateRings()
-    void fetchAndUpdate()
-    void updateOuterRing()
-  })
+  function activateConversation(conversationId: string | null): void {
+    if (!conversationId) {
+      tracker.stop()
+      panel.close()
+      badgeEl.style.display = 'none'
+      return
+    }
 
-  // Badge click: open panel with current data
-  badgeEl.addEventListener('click', async (e: MouseEvent) => {
-    e.stopPropagation()
+    badgeEl.style.display = ''
+    tracker.start(conversationId)
+    void updateOuterRing()
+  }
+
+  navigator.onConversationChange((newId) => activateConversation(newId))
+
+  badgeEl.addEventListener('click', (event: MouseEvent) => {
+    event.stopPropagation()
     if (panel.isOpen()) {
       panel.close()
       return
     }
-
-    let transcript = cachedTranscript
-    if (!transcript) {
-      const convId = adapter.getConversationIdFromUrl()
-      if (convId) {
-        try { transcript = await adapter.fetchConversation(convId) } catch { /* ignore */ }
-      }
-    }
-
-    const tokens = transcript ? estimateTokens(transcript) : 0
-    const contextLoadPct = transcript ? clamp(tokens / contextWindow(transcript), 0, 1) * 100 : 0
-    const usage = await adapter.getUsageInfo()
-    const platformUsagePct = usage.available ? (usage.percentUsed ?? null) : null
-
-    const messageCount = transcript ? transcript.messages.length : 0
-    panel.open({ estimatedTokens: tokens, contextLoadPct, platformUsagePct, messageCount })
+    panel.open(panelStats(trackerState))
   })
 
   document.addEventListener('click', () => {
     if (panel.isOpen()) panel.close()
   })
 
-  // Initial fetch
-  void fetchAndUpdate()
-  void updateOuterRing()
-
-  // Debounced re-fetch on DOM mutations (catches stream completion)
-  let debounceTimer: number | null = null
-  const observer = new MutationObserver(() => {
-    if (debounceTimer !== null) window.clearTimeout(debounceTimer)
-    debounceTimer = window.setTimeout(() => {
-      void fetchAndUpdate()
-    }, 2000)
-  })
-  observer.observe(document.body, { childList: true, subtree: true })
+  activateConversation(navigator.getCurrentConversationId())
 }

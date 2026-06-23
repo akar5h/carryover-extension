@@ -16,7 +16,7 @@ function getAdapter(): PlatformAdapter | null {
 }
 
 const adapter = getAdapter()
-if (adapter && adapter.isSupportedPage()) {
+if (adapter) {
   const navigator = new SpaNavigator()
   navigator.start()
   startBadgeUpdater(adapter, navigator)
@@ -24,11 +24,7 @@ if (adapter && adapter.isSupportedPage()) {
 
 // Handle text carryover into a freshly opened tab (set by openNewChatWithText).
 // Runs on claude.ai and chatgpt.com; key is cleared after first successful insert.
-if (location.hostname === 'claude.ai') {
-  void checkPendingInsert(new ClaudeAdapter())
-} else if (location.hostname === 'chatgpt.com' || location.hostname === 'chat.openai.com') {
-  void checkPendingInsert(new ChatGPTAdapter())
-}
+if (adapter) void checkPendingInsert(adapter)
 
 async function checkPendingInsert(platformAdapter: PlatformAdapter): Promise<void> {
   let stored: Record<string, unknown>

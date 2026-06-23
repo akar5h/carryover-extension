@@ -6,7 +6,7 @@
  * Never use chrome.* APIs here — this runs in the page's JS environment.
  */
 ;(function () {
-  const cache = new Map<string, unknown>()
+  const cache = new Map<string, { data: unknown; capturedAt: number }>()
   const origFetch = window.fetch
 
   window.fetch = async function (
@@ -26,10 +26,11 @@
         .clone()
         .json()
         .then((data: unknown) => {
-          cache.set(conversationId, data)
+          const capturedAt = Date.now()
+          cache.set(conversationId, { data, capturedAt })
           document.dispatchEvent(
             new CustomEvent('carryover:chatgpt-conversation', {
-              detail: { conversationId, data },
+              detail: { conversationId, data, capturedAt },
             })
           )
         })
@@ -51,7 +52,7 @@
     if (cached) {
       document.dispatchEvent(
         new CustomEvent('carryover:chatgpt-conversation', {
-          detail: { conversationId: id, data: cached },
+          detail: { conversationId: id, data: cached.data, capturedAt: cached.capturedAt },
         })
       )
     }

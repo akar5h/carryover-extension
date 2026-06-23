@@ -4,7 +4,7 @@ const DB_NAME = 'carryover_transcripts'
 const STORE_NAME = 'transcripts'
 const DB_VERSION = 1
 
-interface CacheEntry {
+export interface CacheEntry {
   transcript: NormalizedTranscript
   rawHash?: string
   fetchedAt: string

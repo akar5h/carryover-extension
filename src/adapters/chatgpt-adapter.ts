@@ -4,6 +4,8 @@ import type {
   NormalizedMessage,
   PlatformUsage,
   MessageRole,
+  FetchConversationOptions,
+  LiveMessageSnapshot,
 } from './types'
 import { TranscriptCache } from './transcript-cache'
 
@@ -41,19 +43,30 @@ interface ChatGptRaw {
 }
 
 const INTERCEPT_TIMEOUT_MS = 12_000
+const FRESH_INTERCEPT_TIMEOUT_MS = 1_000
+
+interface InterceptedConversation {
+  data: unknown
+  capturedAt: number
+}
 
 export class ChatGPTAdapter implements PlatformAdapter {
   readonly name = 'chatgpt' as const
 
   private cache = new TranscriptCache()
   // Populated by carryover:chatgpt-conversation events from the MAIN world interceptor
-  private intercepted = new Map<string, unknown>()
+  private intercepted = new Map<string, InterceptedConversation>()
 
   constructor() {
     document.addEventListener('carryover:chatgpt-conversation', (e: Event) => {
-      const evt = e as CustomEvent<{ conversationId: string; data: unknown }>
-      const { conversationId, data } = evt.detail ?? {}
-      if (conversationId && data) this.intercepted.set(conversationId, data)
+      const evt = e as CustomEvent<{ conversationId: string; data: unknown; capturedAt?: number }>
+      const { conversationId, data, capturedAt } = evt.detail ?? {}
+      if (conversationId && data) {
+        this.intercepted.set(conversationId, {
+          data,
+          capturedAt: capturedAt ?? Date.now(),
+        })
+      }
     })
   }
 
@@ -69,15 +82,19 @@ export class ChatGPTAdapter implements PlatformAdapter {
     return m ? m[1] : null
   }
 
-  async fetchConversation(conversationId: string): Promise<NormalizedTranscript> {
+  async fetchConversation(
+    conversationId: string,
+    options: FetchConversationOptions = {}
+  ): Promise<NormalizedTranscript> {
     // 1. IndexedDB cache
     const cached = await this.cache.get('chatgpt', conversationId)
-    if (cached) return cached.transcript
+    if (cached && !options.forceRefresh) return cached.transcript
 
     // 2. Already intercepted from MAIN world (e.g. page fetched before this was called)
     const alreadyIntercepted = this.intercepted.get(conversationId)
-    if (alreadyIntercepted) {
-      const transcript = this.normalizeConversation(alreadyIntercepted)
+    const cachedAt = cached ? Date.parse(cached.fetchedAt) : 0
+    if (alreadyIntercepted && (!options.forceRefresh || alreadyIntercepted.capturedAt > cachedAt)) {
+      const transcript = this.normalizeConversation(alreadyIntercepted.data)
       await this.cache.set('chatgpt', conversationId, transcript)
       return transcript
     }
@@ -86,14 +103,18 @@ export class ChatGPTAdapter implements PlatformAdapter {
     // The interceptor fires on ChatGPT's own /backend-api/conversation/{id} fetch
     // (which includes the required anti-bot tokens). We cannot make that call ourselves.
     return new Promise((resolve, reject) => {
+      const timeoutMs = options.forceRefresh ? FRESH_INTERCEPT_TIMEOUT_MS : INTERCEPT_TIMEOUT_MS
       const timer = setTimeout(() => {
         document.removeEventListener('carryover:chatgpt-conversation', handler)
-        reject(new Error(`Timeout waiting for ChatGPT conversation ${conversationId}`))
-      }, INTERCEPT_TIMEOUT_MS)
+        const prefix = options.forceRefresh ? 'Fresh ChatGPT transcript unavailable' : 'Timeout waiting for ChatGPT conversation'
+        reject(new Error(`${prefix} ${conversationId}`))
+      }, timeoutMs)
 
       const handler = (e: Event) => {
-        const evt = e as CustomEvent<{ conversationId: string; data: unknown }>
+        const evt = e as CustomEvent<{ conversationId: string; data: unknown; capturedAt?: number }>
         if (evt.detail?.conversationId !== conversationId) return
+        const capturedAt = evt.detail.capturedAt ?? Date.now()
+        if (options.forceRefresh && capturedAt <= cachedAt) return
         clearTimeout(timer)
         document.removeEventListener('carryover:chatgpt-conversation', handler)
         const transcript = this.normalizeConversation(evt.detail.data)
@@ -110,6 +131,50 @@ export class ChatGPTAdapter implements PlatformAdapter {
         })
       )
     })
+  }
+
+  getConversationRoot(): Element | null {
+    return document.querySelector('main') ?? document.querySelector('[role="main"]')
+  }
+
+  readVisibleMessages(): LiveMessageSnapshot[] {
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-message-author-role="user"], [data-message-author-role="assistant"]')
+    )
+    const generating = this.isGenerating()
+    const lastAssistant = [...nodes].reverse().find(
+      (node) => node.getAttribute('data-message-author-role') === 'assistant'
+    )
+
+    return nodes.flatMap((node, index) => {
+      const role = node.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant'
+      const content = node.querySelector<HTMLElement>('[data-message-content-wrapper]')
+        ?? node.querySelector<HTMLElement>('.markdown')
+        ?? node
+      const text = (content.innerText ?? content.textContent ?? '').trim()
+      if (!text) return []
+
+      const turn = node.closest<HTMLElement>('[data-message-id], [data-testid^="conversation-turn-"]')
+      const id = node.getAttribute('data-message-id')
+        ?? turn?.getAttribute('data-message-id')
+        ?? turn?.getAttribute('data-testid')
+        ?? `dom:${role}:${index}`
+
+      return [{
+        id,
+        role,
+        text,
+        streaming: role === 'assistant' && generating && node === lastAssistant,
+      } satisfies LiveMessageSnapshot]
+    })
+  }
+
+  isGenerating(): boolean {
+    return [
+      'button[aria-label*="Stop"]',
+      'button[aria-label="Stop streaming"]',
+      '[data-testid="stop-button"]',
+    ].some((selector) => document.querySelector(selector))
   }
 
   normalizeConversation(raw: unknown): NormalizedTranscript {
@@ -292,8 +357,7 @@ export class ChatGPTAdapter implements PlatformAdapter {
 
   async openNewChatWithText(text: string): Promise<void> {
     await chrome.storage.session.set({ 'carryover:pending_insert': text })
-    // Opening chatgpt.com root creates a new chat session
-    window.open('https://chatgpt.com/', '_blank')
+    location.assign('https://chatgpt.com/')
   }
 
   async compressInChat(prompt: string): Promise<string> {
@@ -326,7 +390,7 @@ export class ChatGPTAdapter implements PlatformAdapter {
       const obs = new MutationObserver(() => {
         if (STOP_SELS.some(s => document.querySelector(s))) { clearTimeout(t); obs.disconnect(); resolve() }
       })
-      obs.observe(document.body, { childList: true, subtree: true })
+      obs.observe(this.getConversationRoot() ?? document.body, { childList: true, subtree: true })
     })
 
     // Phase 2: wait for generation to complete (stop button gone + new turn has text)
@@ -342,7 +406,11 @@ export class ChatGPTAdapter implements PlatformAdapter {
         if (!txt) return
         clearTimeout(t); obs.disconnect(); resolve(txt)
       })
-      obs.observe(document.body, { childList: true, subtree: true, characterData: true })
+      obs.observe(this.getConversationRoot() ?? document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      })
     })
   }
 
