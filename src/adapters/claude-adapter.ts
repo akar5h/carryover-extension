@@ -4,6 +4,8 @@ import type {
   NormalizedMessage,
   PlatformUsage,
   MessageRole,
+  FetchConversationOptions,
+  LiveMessageSnapshot,
 } from './types'
 import { TranscriptCache } from './transcript-cache'
 
@@ -84,10 +86,13 @@ export class ClaudeAdapter implements PlatformAdapter {
     return this.cachedOrgId!
   }
 
-  async fetchConversation(conversationId: string): Promise<NormalizedTranscript> {
+  async fetchConversation(
+    conversationId: string,
+    options: FetchConversationOptions = {}
+  ): Promise<NormalizedTranscript> {
     // Check IndexedDB cache first
     const cached = await this.cache.get('claude', conversationId)
-    if (cached) return cached.transcript
+    if (cached && !options.forceRefresh) return cached.transcript
 
     const orgId = await this.getOrganizationId()
     const url =
@@ -119,6 +124,66 @@ export class ClaudeAdapter implements PlatformAdapter {
     const transcript = this.normalizeConversation(raw)
     await this.cache.set('claude', conversationId, transcript)
     return transcript
+  }
+
+  getConversationRoot(): Element | null {
+    return document.querySelector('main') ?? document.querySelector('[role="main"]')
+  }
+
+  readVisibleMessages(): LiveMessageSnapshot[] {
+    const selector = [
+      '[data-message-author-role="user"]',
+      '[data-message-author-role="assistant"]',
+      '[data-testid="user-message"]',
+      '[data-testid="claude-message"]',
+    ].join(', ')
+    const candidates = Array.from(document.querySelectorAll<HTMLElement>(selector))
+    const nodes = candidates.filter(
+      (node) => !candidates.some((other) => other !== node && other.contains(node))
+    )
+    const generating = this.isGenerating()
+    const lastAssistant = [...nodes].reverse().find((node) => this.liveRole(node) === 'assistant')
+
+    return nodes.flatMap((node, index) => {
+      const role = this.liveRole(node)
+      if (!role) return []
+      const content = node.querySelector<HTMLElement>('.font-claude-message')
+        ?? node.querySelector<HTMLElement>('.font-claude-message-content')
+        ?? node
+      const text = (content.innerText ?? content.textContent ?? '').trim()
+      if (!text) return []
+
+      const container = node.closest<HTMLElement>('[data-message-id], [data-testid^="conversation-turn-"]')
+      const id = node.getAttribute('data-message-id')
+        ?? container?.getAttribute('data-message-id')
+        ?? container?.getAttribute('data-testid')
+        ?? `dom:${role}:${index}`
+
+      return [{
+        id,
+        role,
+        text,
+        streaming: role === 'assistant' && generating && node === lastAssistant,
+      } satisfies LiveMessageSnapshot]
+    })
+  }
+
+  isGenerating(): boolean {
+    return [
+      '[data-is-streaming="true"]',
+      '.result-streaming',
+      'button[aria-label*="Stop"]',
+      'button[aria-label="Stop generating"]',
+    ].some((selector) => document.querySelector(selector))
+  }
+
+  private liveRole(node: HTMLElement): 'user' | 'assistant' | null {
+    const explicit = node.getAttribute('data-message-author-role')
+    if (explicit === 'user' || explicit === 'assistant') return explicit
+    const testId = node.getAttribute('data-testid') ?? ''
+    if (testId.includes('user')) return 'user'
+    if (testId.includes('claude')) return 'assistant'
+    return null
   }
 
   normalizeConversation(raw: unknown): NormalizedTranscript {
@@ -308,7 +373,7 @@ export class ClaudeAdapter implements PlatformAdapter {
 
   async openNewChatWithText(text: string): Promise<void> {
     await chrome.storage.session.set({ 'carryover:pending_insert': text })
-    window.open('https://claude.ai/new', '_blank')
+    location.assign('https://claude.ai/new')
   }
 
   async compressInChat(prompt: string): Promise<string> {
@@ -345,7 +410,7 @@ export class ClaudeAdapter implements PlatformAdapter {
         const streaming = STREAMING_SELS.some(s => document.querySelector(s))
         if (newTurns || streaming) { clearTimeout(t); obs.disconnect(); resolve() }
       })
-      obs.observe(document.body, { childList: true, subtree: true })
+      obs.observe(this.getConversationRoot() ?? document.body, { childList: true, subtree: true })
     })
 
     // Phase 2: wait for streaming to stop + new turn has text
@@ -361,7 +426,11 @@ export class ClaudeAdapter implements PlatformAdapter {
         if (!txt) return
         clearTimeout(t); obs.disconnect(); resolve(txt)
       })
-      obs.observe(document.body, { childList: true, subtree: true, characterData: true })
+      obs.observe(this.getConversationRoot() ?? document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      })
     })
   }
 

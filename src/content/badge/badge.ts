@@ -5,11 +5,33 @@ export const OUTER_R = 19
 export const INNER_CIRC = 2 * Math.PI * INNER_R
 export const OUTER_CIRC = 2 * Math.PI * OUTER_R
 
+export const USAGE_COLORS = {
+  low: '#4ecf8a',
+  medium: '#f6c84c',
+  high: '#ff5a6a',
+} as const
+
 export interface BadgeRefs {
   badgeEl: HTMLDivElement
   innerFill: SVGCircleElement
   outerFill: SVGCircleElement
   outerTrack: SVGCircleElement
+  percentText: SVGTextElement
+}
+
+export interface UsageStatus {
+  label: string
+  color: string
+}
+
+export function usageStatusForPercent(percentUsed: number): UsageStatus {
+  if (percentUsed >= 80) return { label: 'Critical', color: USAGE_COLORS.high }
+  if (percentUsed >= 55) return { label: 'Compress soon', color: USAGE_COLORS.medium }
+  return { label: 'Healthy', color: USAGE_COLORS.low }
+}
+
+export function usageColorForPercent(percentUsed: number): string {
+  return usageStatusForPercent(percentUsed).color
 }
 
 export function createBadge(): BadgeRefs {
@@ -29,9 +51,24 @@ export function createBadge(): BadgeRefs {
       '  transition: stroke-dashoffset 0.3s ease;',
       '}',
       '#carryover-badge .co-ring-outer-track { stroke: #333; stroke-width: 3; }',
-      '#carryover-badge .co-ring-outer-fill  { stroke: #4ecf8a; stroke-width: 3; }',
+      `#carryover-badge .co-ring-outer-fill  { stroke: ${USAGE_COLORS.low}; stroke-width: 3; }`,
       '#carryover-badge .co-ring-inner-track { stroke: #333; stroke-width: 3; }',
-      '#carryover-badge .co-ring-inner-fill  { stroke: #7c6af7; stroke-width: 3; }',
+      `#carryover-badge .co-ring-inner-fill  { stroke: ${USAGE_COLORS.low}; stroke-width: 3; }`,
+      '#carryover-badge .co-ring-center {',
+      '  fill: #161616;',
+      '  stroke: #2a2a2a;',
+      '  stroke-width: 1;',
+      '}',
+      '#carryover-badge .co-ring-percent {',
+      `  fill: ${USAGE_COLORS.low};`,
+      '  font-family: system-ui, sans-serif;',
+      '  font-size: 9px;',
+      '  font-weight: 700;',
+      '  font-variant-numeric: tabular-nums;',
+      '  text-anchor: middle;',
+      '  dominant-baseline: central;',
+      '  pointer-events: none;',
+      '}',
       '#carryover-panel {',
       '  position: fixed; bottom: 74px; right: 20px;',
       '  z-index: 2147483646;',
@@ -87,6 +124,12 @@ export function createBadge(): BadgeRefs {
   const outerFill  = mkCircle('co-ring-outer-fill',  OUTER_R)
   const innerTrack = mkCircle('co-ring-inner-track', INNER_R)
   const innerFill  = mkCircle('co-ring-inner-fill',  INNER_R)
+  const centerDisc = mkCircle('co-ring-center', 9)
+  const percentText = document.createElementNS(NS, 'text')
+  percentText.setAttribute('class', 'co-ring-percent')
+  percentText.setAttribute('x', '22')
+  percentText.setAttribute('y', '22.5')
+  percentText.textContent = '0%'
 
   // Start progress arcs from 12 o'clock
   outerFill.setAttribute('transform', 'rotate(-90 22 22)')
@@ -106,8 +149,10 @@ export function createBadge(): BadgeRefs {
   svg.appendChild(outerFill)
   svg.appendChild(innerTrack)
   svg.appendChild(innerFill)
+  svg.appendChild(centerDisc)
+  svg.appendChild(percentText)
   badge.appendChild(svg)
   document.body.appendChild(badge)
 
-  return { badgeEl: badge, innerFill, outerFill, outerTrack }
+  return { badgeEl: badge, innerFill, outerFill, outerTrack, percentText }
 }

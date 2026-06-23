@@ -36,6 +36,17 @@ export interface PlatformUsage {
   label: string
 }
 
+export interface FetchConversationOptions {
+  forceRefresh?: boolean
+}
+
+export interface LiveMessageSnapshot {
+  id: string
+  role: MessageRole
+  text: string
+  streaming: boolean
+}
+
 export type AdapterErrorCode =
   | 'NOT_ON_SUPPORTED_PAGE'
   | 'NO_CONVERSATION_ID'
@@ -59,9 +70,15 @@ export interface PlatformAdapter {
   name: PlatformName
   isSupportedPage(): boolean
   getConversationIdFromUrl(): string | null
-  fetchConversation(conversationId: string): Promise<NormalizedTranscript>
+  fetchConversation(
+    conversationId: string,
+    options?: FetchConversationOptions
+  ): Promise<NormalizedTranscript>
   getUsageInfo(): Promise<PlatformUsage>
   normalizeConversation(raw: unknown): NormalizedTranscript
+  getConversationRoot?(): Element | null
+  readVisibleMessages?(): LiveMessageSnapshot[]
+  isGenerating?(): boolean
   insertTextIntoComposer?(text: string): Promise<void>
   openNewChatWithText?(text: string): Promise<void>
   /** Send prompt in the current chat and wait for the response. Returns response text. */

@@ -1,4 +1,5 @@
 import type { CompressRequest, CompressResponse } from './background-messages'
+import { OPENAI_API_KEY_STORAGE_KEY } from './settings'
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
@@ -35,8 +36,8 @@ async function handleCompress(
   sendResponse: (r: CompressResponse) => void,
 ): Promise<void> {
   try {
-    const stored = await chrome.storage.sync.get('openai_api_key')
-    const apiKey = stored['openai_api_key'] as string | undefined
+    const stored = await chrome.storage.sync.get(OPENAI_API_KEY_STORAGE_KEY)
+    const apiKey = stored[OPENAI_API_KEY_STORAGE_KEY] as string | undefined
     if (!apiKey) {
       sendResponse({
         ok: false,

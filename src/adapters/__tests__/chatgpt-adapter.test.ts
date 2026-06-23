@@ -5,6 +5,7 @@ vi.stubGlobal('location', {
   hostname: 'chatgpt.com',
   pathname: '/c/abc123',
   href: 'https://chatgpt.com/c/abc123',
+  assign: vi.fn(),
 })
 
 vi.stubGlobal('chrome', {
@@ -255,15 +256,43 @@ describe('ChatGPTAdapter composition methods', () => {
   })
 
   describe('openNewChatWithText', () => {
-    it('stores text in session storage and opens chatgpt.com', async () => {
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
-
+    it('stores text and navigates the current tab to a fresh chat', async () => {
       await adapter.openNewChatWithText('my prompt')
 
       expect(chrome.storage.session.set).toHaveBeenCalledWith({
         'carryover:pending_insert': 'my prompt',
       })
-      expect(openSpy).toHaveBeenCalledWith('https://chatgpt.com/', '_blank')
+      expect(location.assign).toHaveBeenCalledWith('https://chatgpt.com/')
     })
+  })
+})
+
+describe('ChatGPTAdapter live tracking', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('extracts stable message IDs, roles, text, and streaming state', () => {
+    document.body.innerHTML = `
+      <main>
+        <article data-testid="conversation-turn-1">
+          <div data-message-id="user-1" data-message-author-role="user">Question</div>
+        </article>
+        <article data-testid="conversation-turn-2">
+          <div data-message-id="assistant-1" data-message-author-role="assistant">
+            <div class="markdown">Streaming answer</div>
+          </div>
+        </article>
+        <button aria-label="Stop streaming"></button>
+      </main>
+    `
+    const adapter = new ChatGPTAdapter()
+
+    expect(adapter.getConversationRoot()).toBe(document.querySelector('main'))
+    expect(adapter.readVisibleMessages()).toEqual([
+      { id: 'user-1', role: 'user', text: 'Question', streaming: false },
+      { id: 'assistant-1', role: 'assistant', text: 'Streaming answer', streaming: true },
+    ])
+    expect(adapter.isGenerating()).toBe(true)
   })
 })
