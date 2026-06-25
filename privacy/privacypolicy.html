@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Privacy Policy for CarryOver, a local-first Chrome extension for compressing AI conversation context." />
+  <title>CarryOver Privacy Policy</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f0d18;
+      --panel: #181422;
+      --panel-border: #34284b;
+      --text: #f4efff;
+      --muted: #bcb1d8;
+      --accent: #9b7cff;
+      --accent-soft: rgba(155, 124, 255, 0.18);
+      --link: #c4adff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(155, 124, 255, 0.2), transparent 32rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0 72px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #6ce6bb);
+      box-shadow: 0 0 28px rgba(155, 124, 255, 0.42);
+    }
+
+    .hero {
+      margin: 24px 0 28px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2.25rem, 7vw, 4.7rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .updated {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .summary {
+      margin: 24px 0 0;
+      max-width: 760px;
+      color: #e5dcff;
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+    }
+
+    .policy {
+      display: grid;
+      gap: 18px;
+    }
+
+    section {
+      padding: 24px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: rgba(24, 20, 34, 0.82);
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      color: var(--text);
+      font-size: 1.18rem;
+      line-height: 1.3;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--muted);
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    a {
+      color: var(--link);
+      text-decoration-color: var(--accent);
+      text-underline-offset: 3px;
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(155, 124, 255, 0.34);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #eee8ff;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100% - 24px, 920px);
+        padding: 34px 0 48px;
+      }
+
+      .hero {
+        margin-top: 18px;
+      }
+
+      section {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand" aria-label="CarryOver">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>CarryOver</span>
+    </div>
+
+    <header class="hero">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Effective Date: June 25, 2026</p>
+      <p class="summary">
+        CarryOver is a Chrome extension that helps users continue long AI conversations by estimating context usage and creating compact conversation checkpoints.
+      </p>
+    </header>
+
+    <div class="policy">
+      <section>
+        <h2>1. Local-First Operation</h2>
+        <p>
+          CarryOver is designed to work locally inside your browser. The extension does not operate any external database, backend server, analytics system, or user account system.
+        </p>
+        <p>
+          We do not collect, store, sell, or share your conversation data on our servers. CarryOver does not upload your chats, prompts, responses, files, browsing activity, or personal information to any database owned or operated by us.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. Access to Chat Content</h2>
+        <p>
+          CarryOver runs on supported AI chat websites, including ChatGPT and Claude, so it can read the visible conversation content on the page.
+        </p>
+        <p>
+          This access is used only for the extension's single purpose: estimating context usage, showing conversation status, and helping create a compressed checkpoint for continuing the conversation in a fresh chat.
+        </p>
+        <p>
+          All processing is performed locally in your browser by default.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Data Storage</h2>
+        <p>
+          CarryOver may store limited extension data locally in your browser, such as:
+        </p>
+        <ul>
+          <li>Extension settings</li>
+          <li>Compression mode preference</li>
+          <li>Temporary checkpoint text for carrying context into a new chat</li>
+          <li>Optional API key, if the user chooses to use API Fallback</li>
+        </ul>
+        <p class="note">
+          This data is stored using Chrome extension storage. We do not receive or store this data on any server controlled by us.
+        </p>
+      </section>
+
+      <section>
+        <h2>4. Optional API Fallback</h2>
+        <p>
+          CarryOver includes an optional API Fallback mode. This mode is disabled unless the user chooses to enable it and provides their own OpenAI API key.
+        </p>
+        <p>
+          If API Fallback is enabled, conversation text needed for compression may be sent directly from the user's browser to OpenAI's API for processing. This data is not sent to us, stored by us, or accessible to us.
+        </p>
+        <p>
+          Users who do not enable API Fallback can use CarryOver locally without sending conversation content to any external API through the extension.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. No Sale or Transfer of User Data</h2>
+        <p>
+          We do not sell user data.
+        </p>
+        <p>
+          We do not transfer user data to third parties except where required to provide a user-enabled feature, such as optional API Fallback. We do not use user data for advertising, profiling, analytics, creditworthiness, lending, or any unrelated purpose.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Permissions</h2>
+        <p>
+          CarryOver requests permissions only to support its core functionality:
+        </p>
+        <ul>
+          <li>Access to ChatGPT and Claude pages is used to read visible chat content and show the CarryOver panel.</li>
+          <li>Storage permission is used to save local extension settings and temporary checkpoint data.</li>
+          <li>Clipboard permission is used to copy generated checkpoints when requested by the user.</li>
+          <li>OpenAI API access is used only for optional API Fallback mode.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. Data Security</h2>
+        <p>
+          Because CarryOver does not operate a backend database or server, we do not centrally store user data. Any locally stored extension data remains in the user's browser environment.
+        </p>
+        <p>
+          Users are responsible for managing their own browser profile, device security, and any third-party API keys they choose to enter.
+        </p>
+      </section>
+
+      <section>
+        <h2>8. Changes to This Policy</h2>
+        <p>
+          We may update this Privacy Policy as CarryOver evolves. Any material changes will be reflected in the latest published version of this policy.
+        </p>
+      </section>
+
+      <section>
+        <h2>9. Contact</h2>
+        <p>
+          For privacy questions, contact <a href="mailto:akarshgajbhiye@gmail.com">akarshgajbhiye@gmail.com</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
